@@ -22,10 +22,9 @@ export default function Accueil() {
 
   return (
     <div className="page-container">
-      {/* Bouton 'Se connecter' affiché seulement sur la page d'accueil, positionné dans le cadre haut-droite */}
-      <Link to="/connexionartisan" className="btn home-login-btn">Se connecter</Link>
       {/* 2. SECTION HERO DYNAMIQUE */}
       <section className="hero-section">
+        <Link to="/connexionartisan" className="btn hero-login-btn">Se connecter</Link>
         <div className="hero-carousel">
           {images.map((src, i) => (
             <img 
@@ -396,6 +395,35 @@ export default function Accueil() {
         }
         .copy-line { color:#94a3b8; font-size:0.95rem; }
 
+        /* Bouton 'Se connecter' — global styles (cadre, Montserrat, hover) */
+        .hero-login-btn {
+          position: absolute;
+          top: 12px;
+          right: 5%;
+          z-index: 1200;
+          padding: 10px 18px;
+          font-size: 0.98rem;
+          font-weight: 700;
+          border-radius: 8px;
+          background: rgba(255,255,255,0.95);
+          color: #0f172a;
+          border: 2px solid rgba(15,23,42,0.95);
+          font-family: 'Montserrat', sans-serif;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 6px 12px rgba(15,23,42,0.12);
+          transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease;
+          cursor: pointer;
+        }
+        .hero-login-btn:hover {
+          transform: translateY(-3px);
+          background: #0f172a;
+          color: #ffffff;
+          border-color: #0f172a;
+        }
+
         /* Responsive basique pour mobiles */
         @media (max-width: 1024px) {
           .footer-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 28px; }
@@ -421,23 +449,9 @@ export default function Accueil() {
           }
           .footer-grid { grid-template-columns: 1fr; }
           .social-icon { width:40px; height:40px; }
-          /* Bouton 'Se connecter' spécifique à la page d'accueil */
-          .home-login-btn {
-            position: fixed;
-            top: 18px;
-            right: 5%;
-            z-index: 1200;
-            background: #0f172a;
-            color: #fff;
-            border-radius: 10px;
-            padding: 10px 18px;
-            font-weight: 700;
-            box-shadow: 0 6px 10px rgba(15,23,42,0.18);
-            text-decoration: none;
-          }
-          @media (max-width: 768px) {
-            .home-login-btn { right: 4%; top: 12px; padding: 8px 14px; }
-          }
+          /* Mobile overrides pour le bouton de connexion */
+          .hero-login-btn { right: 4%; top: 10px; padding: 8px 14px; font-size: 0.92rem; }
+          .hero-login-btn:hover { transform: translateY(-3px); background: #0f172a; color: #fff; border-color: #0f172a; }
         }
       `}</style>
     </div>

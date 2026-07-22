@@ -25,7 +25,7 @@ export default function ConnexionArtisan() {
       <div className="login-card">
         <div className="login-header">
           <h2>Espace Artisan</h2>
-          <p>Connectez-vous pour passer votre test ou consulter vos résultats.</p>
+          <p>Connectez-vous pour passer votre test.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
