@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 try {
     if (isset($_GET['code'])) {
-        $stmt = $pdo->prepare("SELECT code, libelle FROM corps_metier WHERE code = :code");
+        $stmt = $pdo->prepare("SELECT code_corpsmetier, libelle FROM corps_metier WHERE code_corpsmetier = :code");
         $stmt->execute(["code" => $_GET['code']]);
         $metier = $stmt->fetch();
 
@@ -22,7 +22,7 @@ try {
 
         echo json_encode(["success" => true, "data" => $metier]);
     } else {
-        $stmt = $pdo->query("SELECT code, libelle FROM corps_metier ORDER BY libelle ASC");
+        $stmt = $pdo->query("SELECT code_corpsmetier, libelle FROM corps_metier ORDER BY libelle ASC");
         echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
     }
 } catch (PDOException $e) {

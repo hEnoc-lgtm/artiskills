@@ -12,9 +12,9 @@ $donnees = json_decode(file_get_contents("php://input"), true);
 $idQuestion = $donnees['idQuestion'] ?? null;
 $enonce = trim($donnees['enonce'] ?? '');
 $typeQuestion = $donnees['typeQuestion'] ?? '';
-$code_corpsmetier = $donnees['code_corpsmetier'] ?? null;
+$code_corpsmetier = $donnees['code_corpsmetier'] ?? '';
 
-if (!$idQuestion || $enonce === '' || !$typeQuestion || !$code_corpsmetier) {
+if (!$idQuestion || $enonce === '' || $typeQuestion === '' || $code_corpsmetier === '') {
     http_response_code(422);
     echo json_encode(["success" => false, "message" => "Tous les champs sont obligatoires."]);
     exit;

@@ -29,7 +29,7 @@ try {
 
     echo json_encode(["success" => true, "message" => "Profil supprimé avec succès."]);
 } catch (PDOException $e) {
-    // Erreur typique : ce profil a encore des suppressions tracées dans historique_suppression (ON DELETE RESTRICT)
+    // Erreur typique : ce profil a encore des suppressions tracées dans historique_suppression
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Suppression impossible : " . $e->getMessage()]);
 }

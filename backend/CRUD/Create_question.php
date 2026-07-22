@@ -11,9 +11,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $donnees = json_decode(file_get_contents("php://input"), true);
 $enonce = trim($donnees['enonce'] ?? '');
 $typeQuestion = $donnees['typeQuestion'] ?? '';
-$code_corpsmetier = $donnees['code_corpsmetier'] ?? null;
+$code_corpsmetier = $donnees['code_corpsmetier'] ?? '';
 
-if ($enonce === '' || !$typeQuestion || !$code_corpsmetier) {
+if ($enonce === '' || $typeQuestion === '' || $code_corpsmetier === '') {
     http_response_code(422);
     echo json_encode(["success" => false, "message" => "Les champs 'enonce', 'typeQuestion' et 'code_corpsmetier' sont obligatoires."]);
     exit;
@@ -26,7 +26,7 @@ if (!in_array($typeQuestion, ['QCM_unique', 'QCM_multiple', 'VraiFaux'], true)) 
 }
 
 try {
-    $verif = $pdo->prepare("SELECT code FROM corps_metier WHERE code = :code");
+    $verif = $pdo->prepare("SELECT code_corpsmetier FROM corps_metier WHERE code_corpsmetier = :code");
     $verif->execute(["code" => $code_corpsmetier]);
     if (!$verif->fetch()) {
         http_response_code(422);

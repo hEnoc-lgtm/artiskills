@@ -2,35 +2,72 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
-if (!in_array($_SERVER['REQUEST_METHOD'], ['DELETE', 'POST'], true)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
-$id_artisan = $donnees['id_artisan'] ?? $_GET['id'] ?? null;
+$nom = trim($donnees['nom'] ?? '');
+$prenom = trim($donnees['prenom'] ?? '');
+$contact = trim($donnees['contact'] ?? '');
+$sexe = $donnees['sexe'] ?? '';
+$motdepasse = $donnees['motdepasse'] ?? '';
+$emailPro = trim($donnees['emailPro'] ?? '');
+$service = trim($donnees['service'] ?? '');
+$role = $donnees['role'] ?? '';
 
-if (!$id_artisan) {
+if ($nom === '' || $prenom === '' || $contact === '' || $sexe === '' || $motdepasse === '' || $emailPro === '' || $service === '' || $role === '') {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le champ 'id_artisan' est obligatoire."]);
+    echo json_encode(["success" => false, "message" => "Tous les champs sont obligatoires."]);
+    exit;
+}
+
+if (!in_array($sexe, ['Masculin', 'Féminin'], true)) {
+    http_response_code(422);
+    echo json_encode(["success" => false, "message" => "sexe doit être 'Masculin' ou 'Féminin'."]);
+    exit;
+}
+
+// Valeurs exactes de l'ENUM en base (attention à l'orthographe : 'administratueur')
+if (!in_array($role, ['agent simple', 'administratueur'], true)) {
+    http_response_code(422);
+    echo json_encode(["success" => false, "message" => "role doit être 'agent simple' ou 'administratueur'."]);
     exit;
 }
 
 try {
-    // La suppression entraîne, via ON DELETE CASCADE, celle de sa résidence,
-    // de son atelier éventuel et de son test associé.
-    $stmt = $pdo->prepare("DELETE FROM artisan WHERE id_artisan = :id_artisan");
-    $stmt->execute(["id_artisan" => $id_artisan]);
-
-    if ($stmt->rowCount() === 0) {
-        http_response_code(404);
-        echo json_encode(["success" => false, "message" => "Artisan introuvable."]);
+    $verif = $pdo->prepare("SELECT id_profil FROM profil WHERE emailPro = :emailPro");
+    $verif->execute(["emailPro" => $emailPro]);
+    if ($verif->fetch()) {
+        http_response_code(409);
+        echo json_encode(["success" => false, "message" => "Cette adresse e-mail professionnelle est déjà utilisée."]);
         exit;
     }
 
-    echo json_encode(["success" => true, "message" => "Artisan supprimé avec succès."]);
+    $stmt = $pdo->prepare("
+        INSERT INTO profil (nom, prenom, contact, sexe, motDepasse, emailPro, service, role)
+        VALUES (:nom, :prenom, :contact, :sexe, :motDepasse, :emailPro, :service, :role)
+    ");
+    $stmt->execute([
+        "nom" => $nom,
+        "prenom" => $prenom,
+        "contact" => $contact,
+        "sexe" => $sexe,
+        "motDepasse" => password_hash($motdepasse, PASSWORD_DEFAULT),
+        "emailPro" => $emailPro,
+        "service" => $service,
+        "role" => $role,
+    ]);
+
+    http_response_code(201);
+    echo json_encode([
+        "success" => true,
+        "message" => "Profil créé avec succès.",
+        "data" => ["id_profil" => (int) $pdo->lastInsertId(), "nom" => $nom, "prenom" => $prenom, "emailPro" => $emailPro, "role" => $role],
+    ]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Suppression impossible : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur lors de la création : " . $e->getMessage()]);
 }

@@ -9,18 +9,18 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'POST'], true)) {
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
-$code = $donnees['code'] ?? null;
+$code_corpsmetier = $donnees['code_corpsmetier'] ?? null;
 $libelle = trim($donnees['libelle'] ?? '');
 
-if (!$code || $libelle === '') {
+if (!$code_corpsmetier || $libelle === '') {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Les champs 'code' et 'libelle' sont obligatoires."]);
+    echo json_encode(["success" => false, "message" => "Les champs 'code_corpsmetier' et 'libelle' sont obligatoires."]);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE corps_metier SET libelle = :libelle WHERE code = :code");
-    $stmt->execute(["libelle" => $libelle, "code" => $code]);
+    $stmt = $pdo->prepare("UPDATE corps_metier SET libelle = :libelle WHERE code_corpsmetier = :code");
+    $stmt->execute(["libelle" => $libelle, "code" => $code_corpsmetier]);
 
     if ($stmt->rowCount() === 0) {
         http_response_code(404);

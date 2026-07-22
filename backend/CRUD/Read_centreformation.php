@@ -8,9 +8,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
+$select = "
+    SELECT c.idCentre, c.nomCentre, c.contactCentre, c.id_quartier_centre, q.nom_quartier
+    FROM centre_formation c JOIN quartier_village q ON q.id_quartier = c.id_quartier_centre
+";
+
 try {
     if (isset($_GET['id'])) {
-        $stmt = $pdo->prepare("SELECT idCentre, nomCentre, contactCentre FROM centre_formation WHERE idCentre = :id");
+        $stmt = $pdo->prepare($select . " WHERE c.idCentre = :id");
         $stmt->execute(["id" => $_GET['id']]);
         $centre = $stmt->fetch();
 
@@ -22,7 +27,7 @@ try {
 
         echo json_encode(["success" => true, "data" => $centre]);
     } else {
-        $stmt = $pdo->query("SELECT idCentre, nomCentre, contactCentre FROM centre_formation ORDER BY nomCentre ASC");
+        $stmt = $pdo->query($select . " ORDER BY c.nomCentre ASC");
         echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
     }
 } catch (PDOException $e) {

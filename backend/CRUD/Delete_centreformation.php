@@ -18,7 +18,6 @@ if (!$idCentre) {
 }
 
 try {
-    // La suppression entraîne, via ON DELETE CASCADE, celle de son adresse_centre associée.
     $stmt = $pdo->prepare("DELETE FROM centre_formation WHERE idCentre = :idCentre");
     $stmt->execute(["idCentre" => $idCentre]);
 
@@ -30,7 +29,7 @@ try {
 
     echo json_encode(["success" => true, "message" => "Centre de formation supprimé avec succès."]);
 } catch (PDOException $e) {
-    // Erreur typique : des affectations existent encore pour ce centre (ON DELETE RESTRICT)
+    // Erreur typique : des affectations existent encore pour ce centre
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Suppression impossible : " . $e->getMessage()]);
 }

@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-// motdepasse volontairement exclu de toutes les réponses (donnée sensible hachée)
+// motDepasse volontairement exclu de toutes les réponses (donnée sensible hachée)
 $colonnes = "id_profil, nom, prenom, contact, dateCreation, sexe, emailPro, service, dernierAcces, role";
 
 try {

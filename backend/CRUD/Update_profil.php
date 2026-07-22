@@ -16,18 +16,24 @@ $contact = trim($donnees['contact'] ?? '');
 $sexe = $donnees['sexe'] ?? '';
 $emailPro = trim($donnees['emailPro'] ?? '');
 $service = trim($donnees['service'] ?? '');
-$role = $donnees['role'] ?? null;
-$motdepasse = $donnees['motdepasse'] ?? null; // optionnel
+$role = $donnees['role'] ?? '';
+$motdepasse = $donnees['motdepasse'] ?? null; // optionnel : ne change le mot de passe que si fourni
 
-if (!$id_profil || $nom === '' || $prenom === '' || $contact === '' || !$sexe || $emailPro === '' || $service === '' || !$role) {
+if (!$id_profil || $nom === '' || $prenom === '' || $contact === '' || $sexe === '' || $emailPro === '' || $service === '' || $role === '') {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Les champs nom, prenom, contact, sexe, emailPro, service et role sont obligatoires."]);
+    echo json_encode(["success" => false, "message" => "Tous les champs sont obligatoires."]);
     exit;
 }
 
-if (!in_array($role, ['agent', 'admin'], true)) {
+if (!in_array($sexe, ['Masculin', 'Féminin'], true)) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le rôle doit être 'agent' ou 'admin'."]);
+    echo json_encode(["success" => false, "message" => "sexe doit être 'Masculin' ou 'Féminin'."]);
+    exit;
+}
+
+if (!in_array($role, ['agent simple', 'administratueur'], true)) {
+    http_response_code(422);
+    echo json_encode(["success" => false, "message" => "role doit être 'agent simple' ou 'administratueur'."]);
     exit;
 }
 
@@ -35,13 +41,13 @@ try {
     if ($motdepasse !== null && $motdepasse !== '') {
         $stmt = $pdo->prepare("
             UPDATE profil SET nom = :nom, prenom = :prenom, contact = :contact, sexe = :sexe,
-                emailPro = :emailPro, service = :service, role = :role, motdepasse = :motdepasse
+                emailPro = :emailPro, service = :service, role = :role, motDepasse = :motDepasse
             WHERE id_profil = :id_profil
         ");
         $stmt->execute([
             "nom" => $nom, "prenom" => $prenom, "contact" => $contact, "sexe" => $sexe,
             "emailPro" => $emailPro, "service" => $service, "role" => $role,
-            "motdepasse" => password_hash($motdepasse, PASSWORD_DEFAULT), "id_profil" => $id_profil,
+            "motDepasse" => password_hash($motdepasse, PASSWORD_DEFAULT), "id_profil" => $id_profil,
         ]);
     } else {
         $stmt = $pdo->prepare("
