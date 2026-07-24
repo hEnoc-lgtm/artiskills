@@ -1,8 +1,8 @@
 <?php
-$host = "sql300.infinityfree.com";
-$dbname = "if0_42133398_artiskills";
-$user = "if0_42133398";
-$password = "YeLDZWkHzO9CaT";
+$host = "127.0.0.1";
+$dbname = "artiskills_db";
+$user = "root";
+$password = ""; // Vide par défaut sur XAMPP
 $charset = "utf8mb4";
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";
@@ -18,6 +18,7 @@ try {
 } catch (PDOException $e) {
     http_response_code(500);
     header("Content-Type: application/json");
-    echo json_encode(["success" => false, "message" => "Erreur de connexion à la base de données."]);
+    echo json_encode(["success" => false, "message" => "Erreur de connexion à la base de données locale : " . $e->getMessage()]);
     exit;
 }
+?>
