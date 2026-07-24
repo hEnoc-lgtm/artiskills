@@ -2,28 +2,28 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
-// Sécurité : Bloquer si la méthode HTTP n'est pas un POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
-// Récupération de la charge utile JSON envoyée par le composant React
 $donnees = json_decode(file_get_contents("php://input"), true);
 $npi = $donnees['npi'] ?? null;
 $nom = $donnees['nom'] ?? null;
 $prenom = $donnees['prenom'] ?? null;
+$contact = $donnees['contact'] ?? null;
+$sexe = $donnees['sexe'] ?? null;
 
-// Validation des données obligatoires
-if (!$npi || !$nom || !$prenom) {
+// Validation des 5 champs obligatoires de l'étape 1
+if (!$npi || !$nom || !$prenom || !$contact || !$sexe) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le NPI, le nom et le prénom sont obligatoires pour l'identification."]);
+    echo json_encode(["success" => false, "message" => "Le NPI, le nom, le prénom, le contact et le sexe sont obligatoires."]);
     exit;
 }
 
 try {
-    // ÉTAPE 1 : Vérifier si ce NPI existe déjà dans la base de données
+    // ÉTAPE 1 : Vérifier si ce NPI existe déjà
     $stmtCheck = $pdo->prepare("SELECT id_artisan FROM artisan WHERE npi = :npi");
     $stmtCheck->execute(['npi' => $npi]);
     $artisanExistant = $stmtCheck->fetch(PDO::FETCH_ASSOC);
@@ -31,25 +31,19 @@ try {
     if ($artisanExistant) {
         $idArtisan = $artisanExistant['id_artisan'];
 
-        // Vérifier le statut du test associé pour cet artisan
         $stmtTest = $pdo->prepare("SELECT idTest, heureDebut FROM test WHERE id_artisan = :id");
         $stmtTest->execute(['id' => $idArtisan]);
         $testExistant = $stmtTest->fetch(PDO::FETCH_ASSOC);
 
-        // CAS DE FRAUDE : Si le test a déjà commencé (heureDebut n'est plus NULL)
         if ($testExistant && $testExistant['heureDebut'] !== null) {
-            
-            // Enregistrement de la tentative suspecte dans l'ENUM de l'historique
             $stmtHist = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Réinscription détectée - Test débuté')");
             $stmtHist->execute(['npi' => $npi]);
 
             http_response_code(403);
-            echo json_encode(["success" => false, "message" => "Ce NPI a déjà été utilisé pour démarrer ou soumettre une évaluation. Tentative unique autorisée."]);
+            echo json_encode(["success" => false, "message" => "Ce NPI a déjà été utilisé pour démarrer ou soumettre une évaluation."]);
             exit;
         }
 
-        // CAS CONFORME : Déjà inscrit mais n'a pas fait le test lors de la session précédente
-        // Enregistrement de l'action conforme aux options strictes de l'ENUM
         $stmtHist = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Réinscription détectée - Test non débuté')");
         $stmtHist->execute(['npi' => $npi]);
 
@@ -71,16 +65,20 @@ try {
         exit;
     }
 
-    // ÉTAPE 2 : Premier enregistrement en base de données (Nouvel Artisan complet)
-    $stmtInsert = $pdo->prepare("INSERT INTO artisan (npi, nom, prenom) VALUES (:npi, :nom, :prenom)");
-    $stmtInsert->execute(['npi' => $npi, 'nom' => $nom, 'prenom' => $prenom]);
+    // ÉTAPE 2 : Nouvel Artisan - Insertion des 5 champs de l'étape 1 uniquement
+    $stmtInsert = $pdo->prepare("INSERT INTO artisan (npi, nom, prenom, contact, sexe) VALUES (:npi, :nom, :prenom, :contact, :sexe)");
+    $stmtInsert->execute([
+        'npi' => $npi, 
+        'nom' => $nom, 
+        'prenom' => $prenom,
+        'contact' => $contact,
+        'sexe' => $sexe
+    ]);
     $newIdArtisan = $pdo->lastInsertId();
 
-    // Enregistrement de sa première inscription dans l'ENUM de l'historique
     $stmtHistNew = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Première inscription')");
     $stmtHistNew->execute(['npi' => $npi]);
 
-    // Création de sa ligne de test vide prête à être associée plus tard aux questions
     $stmtTestNew = $pdo->prepare("INSERT INTO test (id_artisan) VALUES (:id)");
     $stmtTestNew->execute(['id' => $newIdArtisan]);
     $idTestCreated = $pdo->lastInsertId();
@@ -98,3 +96,4 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur critique du serveur : " . $e->getMessage()]);
 }
+?>

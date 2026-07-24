@@ -22,11 +22,11 @@ export default function GestionBanqueQuestions({ idAdminConnecte = 1 }) {
 
   const chargerDonnees = () => {
     setChargement(true);
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_question.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_question.php")
       .then((res) => res.json())
       .then((data) => { if (data.success) setQuestions(data.data); });
 
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_corpsmetier.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_corpsmetier.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setMetiers(data.data);
@@ -87,8 +87,8 @@ export default function GestionBanqueQuestions({ idAdminConnecte = 1 }) {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     const url = modeEdition 
-      ? "http://localhost/votre_projet_backend/CRUD/Update_question.php"
-      : "http://localhost/votre_projet_backend/CRUD/Create_question.php";
+      ? "http://localhost/Code/backend/CRUD/Update_question.php"
+      : "http://localhost/Code/backend/CRUD/Create_question.php";
 
     fetch(url, {
       method: "POST",
@@ -109,7 +109,7 @@ export default function GestionBanqueQuestions({ idAdminConnecte = 1 }) {
 
   const handleSupprimer = (id) => {
     if (window.confirm("⚠️ Attention : Supprimer cette question va l'archiver de manière définitive dans l'historique de suppression nationale ANPS. Confirmer ?")) {
-      fetch("http://localhost/votre_projet_backend/CRUD/Delete_question.php", {
+      fetch("http://localhost/Code/backend/CRUD/Delete_question.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idQuestion: id, id_admin: idAdminConnecte }) // Transmission de l'id de l'admin pour la traçabilité

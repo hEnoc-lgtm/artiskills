@@ -1,34 +1,45 @@
 import { BrowserRouter } from "react-router-dom";
 import { useState } from "react";
+
+// Imports des pages (assurez-vous que les noms de fichiers correspondent exactement à ces chemins)
 import Accueil from "./pages/Accueil";
-import InscriptionArtisan from "./pages/Inscriptionartisan"; // 'artisan' avec 'a' minuscule
-import ConfirmationParcours from "./pages/Confirmationparcours"; // 'parcours' avec 'p' minuscule
+import InscriptionArtisan from "./pages/Inscriptionartisan";
+import ConfirmationParcours from "./pages/Confirmationparcours";
 import Pretest from "./pages/Pretest";
-import InstructionTest from "./pages/Instructiontest"; // 'test' avec 't' minuscule
-import QuestionnaireTest from "./pages/Questionnairetest"; // 'test' avec 't' minuscule
-import ResultatAffectation from "./pages/GestionAffectations";
-import TableauDeBordAdmin from "./pages/TableauDeBordAdmin";
-import ConnexionAgentAdmin from "./pages/Connexionagentadmin"; // 'agentadmin' tout attaché en minuscules
+import InstructionTest from "./pages/Instructiontest";
+import QuestionnaireTest from "./pages/Questionnairetest";
+import ResultatAffectation from "./pages/GestionAffectations"; // Conserve votre nom de fichier actuel
+import TableauDeBord from "./pages/TableauDeBord"; // ⚠️ RENOMMÉ : Assurez-vous que votre fichier s'appelle TableauDeBord.jsx
+import ConnexionAgentAdmin from "./pages/Connexionagentadmin";
 
 export default function App() {
-  // L'état 'etape' pilote l'affichage dynamique
+  // 1. État principal qui pilote l'affichage dynamique (Wizard)
   const [etape, setEtape] = useState("accueil");
   
-  // Mémoire de la session de l'artisan
-  const [session, setSession] = useState({ idArtisan: null, idTest: null, idMetier: null, npi: "" });
+  // 2. Mémoire de la session de l'artisan en cours
+  const [session, setSession] = useState({ 
+    idArtisan: null, 
+    idTest: null, 
+    idMetier: null, 
+    npi: "" 
+  });
   
-  // Mémoire de l'admin connecté
+  // 3. Mémoire de l'administrateur ou agent connecté
   const [adminConnecte, setAdminConnecte] = useState(null);
 
+  // Fonction utilitaire pour revenir à l'accueil et réinitialiser si nécessaire
   const handleRetourAccueil = () => {
     setEtape("accueil");
+    // Optionnel : déconnecter l'admin ou vider la session artisan ici si besoin
+    // setAdminConnecte(null);
+    // setSession({ idArtisan: null, idTest: null, idMetier: null, npi: "" });
   };
 
   return (
     <BrowserRouter>
       <div className="app-shell">
         
-        {/* EN-TÊTE FIXE AVEC LOGOS INSTITUTIONNELS (Masqué uniquement sur le Dashboard principal) */}
+        {/* EN-TÊTE FIXE AVEC LOGOS INSTITUTIONNELS (Masqué uniquement sur le Dashboard) */}
         {etape !== "dashboard" && (
           <header className="site-header">
             <div className="logo-left">
@@ -53,11 +64,15 @@ export default function App() {
             />
           )}
 
-          {/* 2. Inscription initiale de l'artisan */}
+          {/* 2. Inscription initiale de l'artisan (NPI, Nom, Prénom, Contact, Sexe) */}
           {etape === "inscription" && (
             <InscriptionArtisan 
               onInscriptionSuccess={(data) => {
-                setSession({ idArtisan: data.idArtisan, idTest: data.idTest, npi: data.npi, idMetier: data.idMetier });
+                setSession({ 
+                  idArtisan: data.idArtisan, 
+                  idTest: data.idTest, 
+                  npi: data.npi 
+                });
                 setEtape("confirmation");
               }} 
             />
@@ -72,12 +87,12 @@ export default function App() {
             />
           )}
 
-          {/* 4. Saisie géographique et choix du corps de métier */}
+          {/* 4. Saisie géographique et choix du corps de métier (Pretest) */}
           {etape === "pretest" && (
             <Pretest 
               idArtisan={session.idArtisan} 
               onPretestSuccess={(idMetierChoisi) => {
-                setSession({ ...session, idMetier: idMetierChoisi });
+                setSession((prevSession) => ({ ...prevSession, idMetier: idMetierChoisi }));
                 setEtape("instructions");
               }} 
             />
@@ -106,20 +121,21 @@ export default function App() {
             />
           )}
 
-          {/* 8. Authentification de l'opérateur ANPS */}
+           {/* 8. Authentification de l'opérateur ANPS */}
           {etape === "admin_login" && (
             <ConnexionAgentAdmin 
               onLoginSuccess={(adminData) => {
+                console.log("🚀 FONCTION DÉCLENCHÉE ! Données reçues :", adminData); // <-- AJOUTEZ CETTE LIGNE
                 setAdminConnecte(adminData);
                 setEtape("dashboard");
+                console.log("🚀 ÉTAPE CHANGÉE EN : dashboard"); // <-- AJOUTEZ CETTE LIGNE
               }}
               onRetour={handleRetourAccueil}
             />
           )}
-
-          {/* 9. Le Tableau de Bord global (Squelette et onglets unifiés) */}
+          {/* 9. Le Tableau de Bord global (Adaptatif selon le rôle : Admin ou Agent) */}
           {etape === "dashboard" && (
-            <TableauDeBordAdmin 
+            <TableauDeBord 
               userConnecte={adminConnecte} 
               onDeconnexion={handleRetourAccueil} 
             />
@@ -128,14 +144,51 @@ export default function App() {
         </main>
       </div>
 
+      {/* Styles globaux de la coquille de l'application */}
       <style>{`
-        .app-shell { min-height: 100vh; display: flex; flex-direction: column; background-color: #f8fafc; font-family: system-ui, sans-serif; }
-        .site-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 5%; background: rgba(255, 255, 255, 0.96); border-bottom: 1px solid rgba(0, 0, 0, 0.08); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); z-index: 1000; backdrop-filter: saturate(180%) blur(10px); }
-        .logo-left, .logo-right { display: flex; align-items: center; min-width: 140px; }
-        .brand-logo { max-height: 50px; width: auto; object-fit: contain; }
-        .institution-logo { max-height: 45px; width: auto; object-fit: contain; }
-        .main-content { flex: 1 0 auto; display: flex; flex-direction: column; }
-        .header-actions { display: flex; align-items: center; gap: 16px; }
+        .app-shell { 
+          min-height: 100vh; 
+          display: flex; 
+          flex-direction: column; 
+          background-color: #f8fafc; 
+          font-family: 'Montserrat', system-ui, sans-serif; 
+        }
+        .site-header { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 14px 5%; 
+          background: rgba(255, 255, 255, 0.96); 
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08); 
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); 
+          z-index: 1000; 
+          backdrop-filter: saturate(180%) blur(10px); 
+        }
+        .logo-left, .logo-right { 
+          display: flex; 
+          align-items: center; 
+          min-width: 140px; 
+        }
+        .brand-logo { 
+          max-height: 50px; 
+          width: auto; 
+          object-fit: contain; 
+        }
+        .institution-logo { 
+          max-height: 45px; 
+          width: auto; 
+          object-fit: contain; 
+        }
+        .main-content { 
+          flex: 1 0 auto; 
+          display: flex; 
+          flex-direction: column; 
+        }
+        .header-actions { 
+          display: flex; 
+          align-items: center; 
+          gap: 16px; 
+        }
       `}</style>
     </BrowserRouter>
   );

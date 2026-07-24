@@ -13,7 +13,7 @@ export default function GestionCorpsMetiers() {
   // 1. READ : Charger la liste depuis CRUD/Read_corpsmetier.php
   const chargerMetiers = () => {
     setChargement(true);
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_corpsmetier.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_corpsmetier.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setMetiers(data.data);
@@ -37,8 +37,8 @@ export default function GestionCorpsMetiers() {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     const url = modeEdition
-      ? "http://localhost/votre_projet_backend/CRUD/Update_corpsmetier.php"
-      : "http://localhost/votre_projet_backend/CRUD/Create_corpsmetier.php";
+      ? "http://localhost/Code/backend/CRUD/Update_corpsmetier.php"
+      : "http://localhost/Code/CRUD/Create_corpsmetier.php";
 
     fetch(url, {
       method: "POST",
@@ -60,7 +60,7 @@ export default function GestionCorpsMetiers() {
   // 3. DELETE : Suppression via CRUD/Delete_corpsmetier.php
   const handleSupprimer = (code) => {
     if (window.confirm(`Voulez-vous supprimer définitivement le corps de métier [${code}] ?`)) {
-      fetch("http://localhost/votre_projet_backend/CRUD/Delete_corpsmetier.php", {
+      fetch("http://localhost/Code/backend/CRUD/Delete_corpsmetier.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code_corpsmetier: code })

@@ -7,7 +7,7 @@ export default function GestionHistoriqueSuppressions() {
 
   const chargerHistorique = () => {
     setChargement(true);
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_historique_suppression.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_historique_suppression.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setLogs(data.data);

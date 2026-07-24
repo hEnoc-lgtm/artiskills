@@ -11,7 +11,7 @@ export default function ConfirmationParcours({ infoParcours, onAccepteTest, onRe
     setChargement(true);
     
     // Appel API pour enregistrer l'abandon dans l'historique de la BDD
-    fetch("http://sql300.infinityfree.com/backend/api/artisan/annulertest.php", {
+    fetch("http://localhost/Code/backend/api/artisan/annulertest.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ npi: npi })

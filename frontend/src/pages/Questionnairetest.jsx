@@ -9,7 +9,7 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
 
   // A. CHARGEMENT INITIAL : Connexion au script PHP de l'Étape 5
   useEffect(() => {
-    fetch(`http://localhost/votre_projet_backend/api/test/charger_questions.php?idTest=${idTest}&idMetier=${idMetier}`)
+    fetch(`http://localhost/Code/backend/api/test/charger_questions.php?idTest=${idTest}&idMetier=${idMetier}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -60,7 +60,7 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
     }
 
     // Appel à sauvegarder_reponse.php
-    fetch("http://localhost/votre_projet_backend/api/test/sauvegarder_reponse.php", {
+    fetch("http://localhost/Code/backend/api/test/sauvegarder_reponse.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

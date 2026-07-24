@@ -21,7 +21,7 @@ export default function GestionCentresFormation() {
     setChargement(true);
     
     // Récupération des centres
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_centreformation.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_centreformation.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setCentres(data.data);
@@ -29,7 +29,7 @@ export default function GestionCentresFormation() {
       .catch((err) => console.error("Erreur de chargement des centres", err));
 
     // Récupération des quartiers (pour remplir le sélecteur du formulaire)
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_quartier_village.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_quartier_village.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setQuartiers(data.data);
@@ -53,8 +53,8 @@ export default function GestionCentresFormation() {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     const url = modeEdition
-      ? "http://localhost/votre_projet_backend/CRUD/Update_centreformation.php"
-      : "http://localhost/votre_projet_backend/CRUD/Create_centreformation.php";
+      ? "http://localhost/Code/backend/CRUD/Update_centreformation.php"
+      : "http://localhost/Code/backend/CRUD/Create_centreformation.php";
 
     fetch(url, {
       method: "POST",
@@ -76,7 +76,7 @@ export default function GestionCentresFormation() {
   // 3. DELETE : Suppression définitive via le fichier CRUD/
   const handleSupprimer = (id) => {
     if (window.confirm("Voulez-vous vraiment retirer ce centre de formation du réseau ARCH officiel ?")) {
-      fetch("http://localhost/votre_projet_backend/CRUD/Delete_centreformation.php", {
+      fetch("http://localhost/Code/backend/CRUD/Delete_centreformation.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idCentre: id })

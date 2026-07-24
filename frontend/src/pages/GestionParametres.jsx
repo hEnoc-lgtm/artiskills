@@ -44,7 +44,7 @@ export default function GestionParametres() {
       default: scriptPHP = "";
     }
 
-    fetch(`http://localhost/votre_projet_backend/CRUD/${scriptPHP}`)
+    fetch(`http://localhost/Code/backend/CRUD/${scriptPHP}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setListeData(data.data);
@@ -63,7 +63,7 @@ export default function GestionParametres() {
 
       // Charger la liste des métiers uniquement si on ouvre le sous-onglet objectifs
       if (sousOnglet === "objectifs") {
-        fetch("http://localhost/votre_projet_backend/CRUD/Read_corpsmetier.php")
+        fetch("http://localhost/Code/backend/CRUD/Read_corpsmetier.php")
           .then((res) => res.json())
           .then((data) => { if (data.success) setMetiers(data.data); });
       }
@@ -75,7 +75,7 @@ export default function GestionParametres() {
   // 2. FOCUS COPIE : Charger l'historique complet des questions/réponses d'un artisan
   const chargerFicheCopieTest = (idTest, nomArtisan) => {
     setChargement(true);
-    fetch(`http://localhost/votre_projet_backend/api/test/charger_questions.php?idTest=${idTest}&idMetier=0`)
+    fetch(`http://localhost/Code/backend/api/test/charger_questions.php?idTest=${idTest}&idMetier=0`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
@@ -104,7 +104,7 @@ export default function GestionParametres() {
       if (sousOnglet === "quartiers") { scriptPHP = "Delete_quartier_village.php"; payloadKey = "id_quartier"; }
       if (sousOnglet === "objectifs") { scriptPHP = "Delete_objectif_formation.php"; payloadKey = "idObjectif"; }
 
-      fetch(`http://localhost/votre_projet_backend/CRUD/${scriptPHP}`, {
+      fetch(`http://localhost/Code/backend/CRUD/${scriptPHP}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [payloadKey]: idTarget })
@@ -124,7 +124,7 @@ export default function GestionParametres() {
     let corpsData;
 
     if (sousOnglet === "objectifs") {
-      url = "http://localhost/votre_projet_backend/CRUD/Create_objectif_formation.php";
+      url = "http://localhost/Code/backend/CRUD/Create_objectif_formation.php";
       corpsData = formDataObjectif;
     } else {
       let nomChamp = "";
@@ -135,7 +135,7 @@ export default function GestionParametres() {
       if (sousOnglet === "arrondissements") { scriptPHP = "Create_arrondissement.php"; nomChamp = "nom_arrondissement"; parentChamp = "id_commune"; }
       if (sousOnglet === "quartiers") { scriptPHP = "Create_quartier_village.php"; nomChamp = "nom_quartier"; parentChamp = "id_arrondissement"; }
 
-      url = `http://localhost/votre_projet_backend/CRUD/${scriptPHP}`;
+      url = `http://localhost/Code/backend/CRUD/${scriptPHP}`;
       corpsData = { [nomChamp]: formDataGeo.nom };
       if (parentChamp) corpsData[parentChamp] = formDataGeo.parentId;
     }

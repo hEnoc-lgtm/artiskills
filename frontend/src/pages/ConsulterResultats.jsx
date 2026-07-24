@@ -14,17 +14,17 @@ export default function ConsulterResultats() {
 
   useEffect(() => {
     // 1. Charger les résultats d'évaluation
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_resultats_tests.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_resultats_tests.php")
       .then((res) => res.json())
       .then((data) => { if (data.success) setResultats(data.data); });
 
     // 2. Charger la liste des métiers pour le filtre
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_corpsmetier.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_corpsmetier.php")
       .then((res) => res.json())
       .then((data) => { if (data.success) setMetiers(data.data); });
 
     // 3. Charger la liste des départements pour le filtre
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_departement.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_departement.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setDepartements(data.data);

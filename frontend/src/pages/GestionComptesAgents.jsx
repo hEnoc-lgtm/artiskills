@@ -1,258 +1,282 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function GestionComptesAgents() {
-  const [comptes, setComptes] = useState([]);
-  const [chargement, setChargement] = useState(true);
-  const [modalOuvert, setModalOuvert] = useState(false);
-  const [modeEdition, setModeEdition] = useState(false);
-
-  const [formData, setFormData] = useState({
-    id_profil: "",
-    nom: "",
-    prenom: "",
-    contact: "",
-    sexe: "Masculin",
-    motdepasse: "",
-    emailPro: "",
-    service: "",
-    role: "agent simple"
+// On reçoit les fonctions de navigation depuis App.jsx
+export default function Connexionagentadmin({ onLoginSuccess, onRetour }) {
+  const [adminData, setAdminData] = useState({
+    identifiant: "",
+    motDePasse: "",
   });
 
-  const chargerComptes = () => {
-    setChargement(true);
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_profil.php")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setComptes(data.data);
-        setChargement(false);
-      })
-      .catch(() => {
-        setChargement(false);
-      });
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState(null);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setAdminData({ ...adminData, [name]: value });
+    // Effacer l'erreur dès que l'utilisateur recommence à taper
+    if (erreur) setErreur(null);
   };
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      chargerComptes();
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  const reinitialiserFormulaire = () => {
-    setModeEdition(false);
-    setFormData({
-      id_profil: "",
-      nom: "",
-      prenom: "",
-      contact: "",
-      sexe: "Masculin",
-      motdepasse: "",
-      emailPro: "",
-      service: "",
-      role: "agent simple"
-    });
-    setModalOuvert(true);
-  };
-
-  const handleFormSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const url = modeEdition
-      ? "http://localhost/votre_projet_backend/CRUD/Update_profil.php"
-      : "http://localhost/votre_projet_backend/CRUD/Create_profil.php";
+    setChargement(true);
+    setErreur(null);
 
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        alert(data.message);
-        if (data.success) {
-          setModalOuvert(false);
-          chargerComptes();
-        }
-      });
-  };
+    // ======================================================================
+    // TODO: REMPLACER CETTE SIMULATION PAR VOTRE VRAI APPEL FETCH PHP
+    // Exemple futur : 
+    // fetch("http://localhost/Code/backend/api/auth/login.php", { method: "POST", body: ... })
+    // ======================================================================
+    
+    // Simulation d'un délai réseau de 1 seconde pour l'expérience utilisateur
+    setTimeout(() => {
+      // Logique de simulation pour tester le Tableau de Bord adaptatif :
+      // Si l'identifiant contient "admin", on lui donne le rôle admin, sinon agent.
+      // (Note : Assurez-vous que l'orthographe correspond exactement à votre ENUM dans la BDD)
+      const roleSimule = adminData.identifiant.toLowerCase().includes("admin") 
+        ? "administratueur" 
+        : "agent simple";
 
-  const handleSupprimer = (id) => {
-    if (window.confirm("⚠️ Révoquer définitivement les accès de ce profil à l'application ANPS ?")) {
-      fetch("http://localhost/votre_projet_backend/CRUD/Delete_profil.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_profil: id })
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          alert(data.message);
-          if (data.success) chargerComptes();
-        });
-    }
-  };
+      const donneesUtilisateurSimulees = {
+        id_profil: 1, // Sera remplacé par l'ID réel renvoyé par le PHP
+        nom: adminData.identifiant, // Sera remplacé par le nom réel (ex: "Jean Dupont")
+        role: roleSimule
+      };
 
-  const ouvrirModalEdition = (id) => {
-    setModeEdition(true);
-    fetch(`http://localhost/votre_projet_backend/CRUD/Read_profil.php?id=${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setFormData({ ...data.data, motdepasse: "PROTECTED" });
-          setModalOuvert(true);
-        }
-      });
+      // On prévient App.jsx que la connexion est réussie
+      if (onLoginSuccess) {
+        onLoginSuccess(donneesUtilisateurSimulees);
+      }
+      
+      setChargement(false);
+    }, 1000);
   };
 
   return (
-    <div className="management-container">
-      <header className="content-header">
-        <div>
-          <h2>Gérer profils</h2>
-          <p className="subtitle">Administration des habilitations d'accès pour les agents simples et les administrateurs de l'ANPS.</p>
-        </div>
-        <button className="btn-add" onClick={reinitialiserFormulaire}>
-          + Nouveau Profil
-        </button>
-      </header>
+    <div className="admin-container">
+      <div className="top-stripe" />
 
-      <div className="table-card">
-        {chargement ? (
-          <div className="loader">Extraction de l'annuaire des profils...</div>
-        ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Opérateur</th>
-                <th>E-mail Pro</th>
-                <th>Service Affecté</th>
-                <th>Rôle (ENUM)</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {comptes.map((c) => (
-                <tr key={c.id_profil}>
-                  <td className="id-cell">{c.id_profil}</td>
-                  <td>
-                    <strong>{c.nom}</strong> {c.prenom}
-                  </td>
-                  <td>{c.emailPro}</td>
-                  <td>
-                    <span className="service-tag">{c.service}</span>
-                  </td>
-                  <td>
-                    <span className={`role-badge ${c.role === "administratueur" ? "admin" : "simple"}`}>
-                      {c.role}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="actions-wrapper">
-                      <button className="btn-edit" onClick={() => ouvrirModalEdition(c.id_profil)}>
-                        Éditer
-                      </button>
-                      <button className="btn-delete" onClick={() => handleSupprimer(c.id_profil)}>
-                        Révoquer
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="admin-card">
+        <div className="admin-header">
+          <div className="admin-badge">Espace Sécurisé</div>
+          <h2>Portail Administration</h2>
+          <p>Réservé aux agents officiels et aux administrateurs du programme ARCH.</p>
+        </div>
+
+        {/* Affichage des erreurs éventuelles */}
+        {erreur && (
+          <div className="error-box">
+            <span className="error-icon">⚠️</span>
+            <p>{erreur}</p>
+          </div>
         )}
+
+        <form onSubmit={handleSubmit} className="admin-form">
+          <div className="form-stack">
+            <div className="input-group">
+              <label htmlFor="identifiant">Identifiant ou Matricule</label>
+              <input
+                type="text"
+                id="identifiant"
+                name="identifiant"
+                value={adminData.identifiant}
+                onChange={handleInputChange}
+                placeholder="Ex: AGENT-2026-X ou ADMIN-01"
+                required
+                disabled={chargement}
+              />
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="motDePasse">Mot de passe</label>
+              <input
+                type="password"
+                id="motDePasse"
+                name="motDePasse"
+                value={adminData.motDePasse}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                required
+                disabled={chargement}
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="submit-btn" disabled={chargement}>
+            {chargement ? "Connexion en cours..." : "Se connecter au tableau de bord"}
+          </button>
+        </form>
+
+        <div className="admin-footer">
+          <p>
+            <button 
+              type="button" 
+              onClick={onRetour} 
+              className="back-link"
+              disabled={chargement}
+            >
+              ← Retour à l'accueil
+            </button>
+            <span className="separator">|</span>
+            <span>Un problème d'accès ? Contactez le support technique.</span>
+          </p>
+        </div>
       </div>
 
-      {modalOuvert && (
-        <div className="modal-overlay">
-          <div className="modal-card macro">
-            <h3>{modeEdition ? "Modifier le profil" : "Créer un nouveau profil ANPS"}</h3>
-            <form onSubmit={handleFormSubmit}>
-              <div className="modal-grid-2">
-                <div className="form-group">
-                  <label>Nom de famille</label>
-                  <input type="text" value={formData.nom} onChange={(e) => setFormData({ ...formData, nom: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Prénom(s)</label>
-                  <input type="text" value={formData.prenom} onChange={(e) => setFormData({ ...formData, prenom: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Téléphone Professionnel</label>
-                  <input type="text" value={formData.contact} onChange={(e) => setFormData({ ...formData, contact: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>E-mail Professionnel</label>
-                  <input type="email" value={formData.emailPro} onChange={(e) => setFormData({ ...formData, emailPro: e.target.value })} required disabled={modeEdition} />
-                </div>
-                <div className="form-group">
-                  <label>Sexe</label>
-                  <select value={formData.sexe} onChange={(e) => setFormData({ ...formData, sexe: e.target.value })}>
-                    <option value="Masculin">Masculin</option>
-                    <option value="Féminin">Féminin</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Service de rattachement</label>
-                  <input type="text" placeholder="Ex: Informatique, Suivi ARCH" value={formData.service} onChange={(e) => setFormData({ ...formData, service: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Rôle Système (ENUM)</label>
-                  <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-                    <option value="agent simple">agent simple</option>
-                    <option value="administratueur">administratueur</option>
-                  </select>
-                </div>
-                {!modeEdition && (
-                  <div className="form-group">
-                    <label>Mot de passe secret</label>
-                    <input type="password" value={formData.motdepasse} onChange={(e) => setFormData({ ...formData, motdepasse: e.target.value })} required />
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setModalOuvert(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="btn-save">
-                  {modeEdition ? "Mettre à jour" : "Valider le profil"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <style>{`
-        .management-container { width: 100%; box-sizing: border-box; }
-        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .content-header h2 { font-size: 1.4rem; color: #0f172a; margin: 0; font-weight: 700; }
-        .subtitle { font-size: 0.88rem; color: #64748b; margin-top: 4px; }
-        .btn-add { background: #000; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .table-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-        .admin-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .admin-table th { background: #f8fafc; padding: 14px 16px; font-size: 0.82rem; text-transform: uppercase; color: #64748b; font-weight: 700; border-bottom: 1px solid #e2e8f0; }
-        .admin-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; color: #334155; }
-        .id-cell { font-family: monospace; font-weight: 700; color: #94a3b8; }
-        .service-tag { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
-        .role-badge { padding: 4px 10px; border-radius: 50px; font-size: 0.8rem; font-weight: 600; }
-        .role-badge.admin { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-        .role-badge.simple { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-        .actions-wrapper { display: flex; gap: 8px; justify-content: flex-end; }
-        .btn-edit { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #334155; font-size: 0.85rem; }
-        .btn-delete { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.3); display: flex; justify-content: center; align-items: center; z-index: 200; }
-        .modal-card.macro { background: #fff; width: 100%; max-width: 560px; padding: 28px; border-radius: 12px; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1); }
-        .modal-card h3 { margin: 0 0 20px 0; font-weight: 700; }
-        .modal-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; text-align: left; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-group label { font-size: 0.85rem; font-weight: 600; color: #475569; }
-        .form-group input, .form-group select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.92rem; background: #fff; width: 100%; box-sizing: border-box; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 14px; margin-top: 20px; }
-        .btn-cancel { background: #fff; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-        .btn-save { background: #000; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        .loader { padding: 40px; text-align: center; color: #64748b; }
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+        .admin-container {
+          min-height: 100vh;
+          background: #0f172a;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          font-family: 'Montserrat', sans-serif;
+        }
+        .top-stripe {
+          height: 6px;
+          width: 100%;
+          max-width: 440px;
+          background: linear-gradient(to right, #008751 33.33%, #ffeb3b 33.33% 66.66%, #e81123 66.66%);
+          border-radius: 6px 6px 0 0;
+        }
+        .admin-card {
+          background: #ffffff;
+          width: 100%;
+          max-width: 440px;
+          padding: 40px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+          border-radius: 0 0 12px 12px;
+        }
+        .admin-header {
+          margin-bottom: 30px;
+          border-bottom: 1px solid #f1f5f9;
+          padding-bottom: 20px;
+          text-align: center;
+        }
+        .admin-badge {
+          display: inline-block;
+          background: #fef2f2;
+          color: #991b1b;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 4px 12px;
+          border-radius: 50px;
+          margin-bottom: 12px;
+          border: 1px solid #fca5a5;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .admin-header h2 {
+          font-size: 1.5rem;
+          color: #1e293b;
+          margin: 0 0 8px 0;
+          font-weight: 700;
+        }
+        .admin-header p {
+          color: #64748b;
+          margin: 0;
+          font-size: 0.88rem;
+          line-height: 1.4;
+        }
+        .error-box {
+          background-color: #fef2f2;
+          border: 1px solid #fca5a5;
+          padding: 12px 16px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .error-box p { margin: 0; font-size: 0.88rem; color: #991b1b; font-weight: 500; }
+        
+        .form-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          margin-bottom: 25px;
+        }
+        .input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .input-group label {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #475569;
+        }
+        .input-group input {
+          padding: 12px;
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          font-size: 0.95rem;
+          background: #ffffff;
+          color: #0f172a;
+          transition: all 0.2s ease;
+          font-family: 'Montserrat', sans-serif;
+        }
+        .input-group input:focus {
+          outline: none;
+          border-color: #1e3a8a;
+          box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
+        }
+        .input-group input:disabled {
+          background-color: #f1f5f9;
+          cursor: not-allowed;
+        }
+        .submit-btn {
+          width: 100%;
+          background: #1e3a8a;
+          color: #ffffff;
+          border: none;
+          padding: 14px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+          font-family: 'Montserrat', sans-serif;
+        }
+        .submit-btn:hover:not(:disabled) {
+          background: #172554;
+        }
+        .submit-btn:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+        }
+        .admin-footer {
+          margin-top: 25px;
+          text-align: center;
+          font-size: 0.8rem;
+          color: #94a3b8;
+          line-height: 1.4;
+        }
+        .back-link {
+          background: none;
+          border: none;
+          color: #1e3a8a;
+          cursor: pointer;
+          text-decoration: underline;
+          font-size: 0.8rem;
+          font-family: 'Montserrat', sans-serif;
+          padding: 0;
+        }
+        .back-link:hover:not(:disabled) {
+          color: #172554;
+        }
+        .back-link:disabled {
+          color: #94a3b8;
+          cursor: not-allowed;
+        }
+        .separator {
+          margin: 0 8px;
+          color: #cbd5e1;
+        }
       `}</style>
     </div>
   );

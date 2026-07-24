@@ -7,7 +7,7 @@ export default function GestionAffectations() {
 
   const chargerAffectations = () => {
     setChargement(true);
-    fetch("http://localhost/votre_projet_backend/CRUD/Read_affectation.php")
+    fetch("http://localhost/Code/backend/CRUD/Read_affectation.php")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setAffectations(data.data);
