@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+// Note : Nous avons retiré "Link" car nous utilisons maintenant les props de navigation
 
 // Mettez ici les chemins vers vos photos d'artisans au travail
 const images = [
@@ -11,7 +11,8 @@ const images = [
   "/images/phtot%20fond5.jpg.jpeg",
 ];
 
-export default function Accueil() {
+// 1. On récupère les fonctions de navigation passées par App.jsx
+export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -24,7 +25,15 @@ export default function Accueil() {
     <div className="page-container">
       {/* 2. SECTION HERO DYNAMIQUE */}
       <section className="hero-section">
-        <Link to="/Connexionagentadmin.jsx" className="btn hero-login-btn">Se connecter</Link>
+        
+        {/* 2. REMPLACÉ : Bouton utilisant la fonction de navigation admin */}
+        <button 
+          onClick={onNavigateToAdmin} 
+          className="btn hero-login-btn"
+        >
+          Se connecter
+        </button>
+
         <div className="hero-carousel">
           {images.map((src, i) => (
             <img 
@@ -45,10 +54,18 @@ export default function Accueil() {
           <p className="hero-description">
             Passez votre test de compétence en ligne et intégrez le centre de formation le mieux adapté à votre métier, dans le cadre du programme national ARCH.
           </p>
+          
           <div className="action-buttons">
-            <Link to="/Inscriptionartisan.jsx" className="btn btn-primary">Inscrivez-vous à un test</Link>
+            {/* 3. REMPLACÉ : Bouton utilisant la fonction de navigation inscription */}
+            <button 
+              onClick={onNavigateToRegister} 
+              className="btn btn-primary"
+            >
+              Inscrivez-vous à un test
+            </button>
             <button className="btn btn-secondary">En savoir plus</button>
           </div>
+
           <div className="social-proof">
             <span className="star-icon">★★★★★</span> 
             <p><strong>+300 artisans</strong> ont déjà validé leurs compétences</p>

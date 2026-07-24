@@ -13,7 +13,7 @@ export default function Connexionagentadmin() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Données Admin prêtes pour l'API PHP :", adminData);
+    console.log("Donnees Admin pretes pour l'API PHP :", adminData);
   };
 
   return (
@@ -22,9 +22,9 @@ export default function Connexionagentadmin() {
 
       <div className="admin-card">
         <div className="admin-header">
-          <div className="admin-badge">Espace Sécurisé</div>
+          <div className="admin-badge">Espace Securise</div>
           <h2>Portail Administration</h2>
-          <p>Réservé aux agents officiels et aux administrateurs du programme.</p>
+          <p>Reserve aux agents officiels et aux administrateurs du programme.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="admin-form">
@@ -48,19 +48,19 @@ export default function Connexionagentadmin() {
                 name="motDePasse"
                 value={adminData.motDePasse}
                 onChange={handleInputChange}
-                placeholder="••••••••"
+                placeholder="????????"
                 required
               />
             </div>
           </div>
 
           <button type="submit" className="submit-btn">
-            Se connecter au tableau de bord ?
+            Se connecter au tableau de bord
           </button>
         </form>
 
         <div className="admin-footer">
-          <p>Un problème d'accès ? Contactez le support technique de la plateforme.</p>
+          <p>Un probleme d'acces ? Contactez le support technique de la plateforme.</p>
         </div>
       </div>
 
