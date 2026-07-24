@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -72,3 +72,4 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur lors de la création : " . $e->getMessage()]);
 }
+

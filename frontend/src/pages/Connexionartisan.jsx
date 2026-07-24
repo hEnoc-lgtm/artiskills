@@ -1,177 +1,140 @@
 import { useState } from "react";
 
 export default function ConnexionArtisan() {
-  const [loginData, setLoginData] = useState({
-    contact: "",
-    codePin: "",
-  });
+  const [credentials, setCredentials] = useState({ contact: "", codePin: "" });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setLoginData({ ...loginData, [name]: value });
+    setCredentials({ ...credentials, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Données envoyées pour vérification PHP :", loginData);
-    // Ici se fera l'appel fetch() vers votre fichier PHP de traitement de connexion
+    // TODO: envoyer les informations au backend pour vérification
+    console.log("Connexion artisan :", credentials);
   };
 
   return (
-    <div className="login-container">
-      {/* Bande tricolore officielle du Bénin */}
-      <div className="top-stripe" />
-
-      <div className="login-card">
-        <div className="login-header">
-          <h2>Espace Artisan</h2>
-          <p>Connectez-vous pour passer votre test.</p>
+    <div className="connexion-container">
+      <div className="connexion-card">
+        <div className="connexion-header">
+          <h2>Connexion Artisan</h2>
+          <p>Entrez votre contact et votre code PIN pour accéder à votre espace test.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-stack">
-            
-            <div className="input-group">
-              <label>Numéro de Contact (Téléphone)</label>
-              <input 
-                type="tel" 
-                name="contact" 
-                value={loginData.contact} 
-                onChange={handleInputChange} 
-                placeholder="Ex: 01XXXXXXXX" 
-                required 
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="connexion-form">
+          <div className="input-group">
+            <label>Numéro de contact</label>
+            <input
+              type="tel"
+              name="contact"
+              value={credentials.contact}
+              onChange={handleInputChange}
+              placeholder="Ex: 01XXXXXXXX"
+              required
+            />
+          </div>
 
-            <div className="input-group">
-              <label>Code PIN secret (4 chiffres)</label>
-              <input 
-                type="password" 
-                name="codePin" 
-                value={loginData.codePin} 
-                onChange={handleInputChange} 
-                placeholder="••••" 
-                maxLength={4}
-                required 
-              />
-            </div>
-
+          <div className="input-group">
+            <label>Code PIN</label>
+            <input
+              type="password"
+              name="codePin"
+              value={credentials.codePin}
+              onChange={handleInputChange}
+              placeholder="••••"
+              maxLength={4}
+              required
+            />
           </div>
 
           <button type="submit" className="submit-btn">
-            Se connecter ➔
+            Se connecter
           </button>
-
-          <div className="login-footer">
-            <p>Pas encore inscrit ? <a href="#inscription">Créer un compte</a></p>
-          </div>
         </form>
       </div>
 
       <style>{`
-        .login-container {
+        .connexion-container {
           min-height: 100vh;
-          background: #f1f5f9;
           display: flex;
-          flex-direction: column;
+          justify-content: center;
           align-items: center;
-          padding: 80px 20px;
+          padding: 30px 20px;
+          background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
           font-family: 'Montserrat', sans-serif;
         }
-        .top-stripe {
-          height: 6px;
+        .connexion-card {
           width: 100%;
-          max-width: 450px;
-          background: linear-gradient(to right, #008751 33.33%, #ffeb3b 33.33% 66.66%, #e81123 66.66%);
-          border-radius: 4px 4px 0 0;
-        }
-        .login-card {
+          max-width: 420px;
           background: #ffffff;
-          width: 100%;
-          max-width: 450px;
-          padding: 40px;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-          border-radius: 0 0 12px 12px;
+          border-radius: 20px;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+          padding: 36px 34px;
+          border: 1px solid rgba(15, 23, 42, 0.08);
         }
-        .login-header {
-          margin-bottom: 30px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 20px;
+        .connexion-header {
+          margin-bottom: 28px;
           text-align: center;
         }
-        .login-header h2 {
-          font-size: 1.6rem;
+        .connexion-header h2 {
+          margin: 0 0 10px;
+          font-size: 1.9rem;
           color: #0f172a;
-          margin: 0 0 6px 0;
-          font-weight: 700;
+          font-weight: 800;
         }
-        .login-header p {
-          color: #64748b;
+        .connexion-header p {
           margin: 0;
-          font-size: 0.9rem;
-          line-height: 1.4;
+          color: #475569;
+          line-height: 1.6;
         }
-        .form-stack {
-          display: flex;
-          flex-direction: column;
+        .connexion-form {
+          display: grid;
           gap: 20px;
-          margin-bottom: 25px;
         }
         .input-group {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
         .input-group label {
-          font-size: 0.85rem;
+          font-size: 0.9rem;
           font-weight: 600;
-          color: #475569;
+          color: #334155;
         }
         .input-group input {
-          padding: 12px;
+          padding: 14px 16px;
           border: 1px solid #cbd5e1;
-          border-radius: 6px;
-          font-size: 0.95rem;
-          background: #ffffff;
+          border-radius: 10px;
+          font-size: 1rem;
           color: #0f172a;
-          transition: all 0.2s ease;
+          background: #f8fafc;
         }
         .input-group input:focus {
           outline: none;
-          border-color: #008751;
-          box-shadow: 0 0 0 3px rgba(0, 135, 81, 0.15);
+          border-color: #0f172a;
+          box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.07);
         }
         .submit-btn {
           width: 100%;
+          padding: 14px 18px;
           background: #0f172a;
           color: #ffffff;
           border: none;
-          padding: 14px;
+          border-radius: 10px;
           font-size: 1rem;
-          font-weight: 600;
-          border-radius: 8px;
+          font-weight: 700;
           cursor: pointer;
-          transition: background 0.2s ease;
+          transition: background 0.2s ease, transform 0.2s ease;
         }
         .submit-btn:hover {
           background: #1e293b;
+          transform: translateY(-1px);
         }
-        .login-footer {
-          margin-top: 20px;
-          text-align: center;
-          font-size: 0.85rem;
-        }
-        .login-footer p {
-          color: #64748b;
-          margin: 0;
-        }
-        .login-footer a {
-          color: #008751;
-          text-decoration: none;
-          font-weight: 600;
-        }
-        .login-footer a:hover {
-          text-decoration: underline;
+        @media (max-width: 600px) {
+          .connexion-card {
+            padding: 28px 22px;
+          }
         }
       `}</style>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function ConnexionAdmin() {
+export default function Connexionagentadmin() {
   const [adminData, setAdminData] = useState({
     identifiant: "",
     motDePasse: "",
@@ -13,71 +13,67 @@ export default function ConnexionAdmin() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("DonnÃ©es Admin prÃªtes pour l'API PHP :", adminData);
-    // Ici se fera l'appel fetch() vers votre endpoint PHP (ex: api/connexion_admin.php)
+    console.log("Données Admin prêtes pour l'API PHP :", adminData);
   };
 
   return (
     <div className="admin-container">
-      {/* Barre supÃ©rieure institutionnelle - Couleurs officielles */}
       <div className="top-stripe" />
 
       <div className="admin-card">
         <div className="admin-header">
-          <div className="admin-badge">Espace SÃ©curisÃ©</div>
+          <div className="admin-badge">Espace Sécurisé</div>
           <h2>Portail Administration</h2>
-          <p>RÃ©servÃ© aux agents officiels et aux administrateurs du programme.</p>
+          <p>Réservé aux agents officiels et aux administrateurs du programme.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="admin-form">
           <div className="form-stack">
-            
             <div className="input-group">
               <label>Identifiant ou Matricule</label>
-              <input 
-                type="text" 
-                name="identifiant" 
-                value={adminData.identifiant} 
-                onChange={handleInputChange} 
-                placeholder="Ex: AGENT-2026-X" 
-                required 
+              <input
+                type="text"
+                name="identifiant"
+                value={adminData.identifiant}
+                onChange={handleInputChange}
+                placeholder="Ex: AGENT-2026-X"
+                required
               />
             </div>
 
             <div className="input-group">
               <label>Mot de passe</label>
-              <input 
-                type="password" 
-                name="motDePasse" 
-                value={adminData.motDePasse} 
-                onChange={handleInputChange} 
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" 
-                required 
+              <input
+                type="password"
+                name="motDePasse"
+                value={adminData.motDePasse}
+                onChange={handleInputChange}
+                placeholder="••••••••"
+                required
               />
             </div>
-
           </div>
 
           <button type="submit" className="submit-btn">
-            Se connecter au tableau de bord âž”
+            Se connecter au tableau de bord ?
           </button>
         </form>
 
         <div className="admin-footer">
-          <p>Un problÃ¨me d'accÃ¨s ? Contactez le support technique de la plateforme.</p>
+          <p>Un problème d'accès ? Contactez le support technique de la plateforme.</p>
         </div>
       </div>
 
       <style>{`
         .admin-container {
           min-height: 100vh;
-          background: #0f172a; /* Fond bleu nuit trÃ¨s pro */
+          background: #0f172a;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 20px;
-            font-family: 'Montserrat', sans-serif;
+          font-family: 'Montserrat', sans-serif;
         }
         .top-stripe {
           height: 6px;
@@ -152,12 +148,12 @@ export default function ConnexionAdmin() {
         }
         .input-group input:focus {
           outline: none;
-          border-color: #1e3a8a; /* Focus Bleu Admin */
+          border-color: #1e3a8a;
           box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.15);
         }
         .submit-btn {
           width: 100%;
-          background: #1e3a8a; /* Couleur Admin prÃ©dominante */
+          background: #1e3a8a;
           color: #ffffff;
           border: none;
           padding: 14px;

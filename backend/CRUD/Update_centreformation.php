@@ -1,53 +1,38 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
-if (!in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'POST'], true)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT') {
     http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
 $idCentre = $donnees['idCentre'] ?? null;
-$nomCentre = trim($donnees['nomCentre'] ?? '');
-$contactCentre = trim($donnees['contactCentre'] ?? '');
-$id_quartier_centre = $donnees['id_quartier_centre'] ?? null;
 
-if (!$idCentre || $nomCentre === '' || !$id_quartier_centre) {
+if (!$idCentre) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Les champs 'idCentre', 'nomCentre' et 'id_quartier_centre' sont obligatoires."]);
+    echo json_encode(["success" => false, "message" => "L'identifiant 'idCentre' est obligatoire."]);
     exit;
 }
 
 try {
-    $verif = $pdo->prepare("SELECT id_quartier FROM quartier_village WHERE id_quartier = :id");
-    $verif->execute(["id" => $id_quartier_centre]);
-    if (!$verif->fetch()) {
-        http_response_code(422);
-        echo json_encode(["success" => false, "message" => "Le quartier indiqué n'existe pas."]);
-        exit;
-    }
-
+    // Mettre à jour les informations réelles
     $stmt = $pdo->prepare("
-        UPDATE centre_formation SET nomCentre = :nomCentre, contactCentre = :contactCentre, id_quartier_centre = :id_quartier_centre
-        WHERE idCentre = :idCentre
+        UPDATE centre_formation 
+        SET nomCentre = :nom, contactCentre = :contact, id_quartier_centre = :idQuartier
+        WHERE idCentre = :id
     ");
+
     $stmt->execute([
-        "nomCentre" => $nomCentre,
-        "contactCentre" => $contactCentre !== '' ? $contactCentre : null,
-        "id_quartier_centre" => $id_quartier_centre,
-        "idCentre" => $idCentre,
+        "nom" => $donnees['nomCentre'],
+        "contact" => $donnees['contactCentre'],
+        "idQuartier" => (int)$donnees['id_quartier_centre'],
+        "id" => $idCentre
     ]);
 
-    if ($stmt->rowCount() === 0) {
-        http_response_code(404);
-        echo json_encode(["success" => false, "message" => "Centre de formation introuvable ou aucune modification effectuée."]);
-        exit;
-    }
-
-    echo json_encode(["success" => true, "message" => "Centre de formation mis à jour avec succès."]);
+    echo json_encode(["success" => true, "message" => "Fiche du centre de formation mise à jour."]);
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de la mise à jour : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur lors de la modification : " . $e->getMessage()]);
 }

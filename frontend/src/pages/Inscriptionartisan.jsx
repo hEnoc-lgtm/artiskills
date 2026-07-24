@@ -1,187 +1,243 @@
 import { useState } from "react";
 
-export default function InscriptionArtisan() {
+export default function Inscriptionartisan({ onInscriptionSuccess }) {
+  // États locaux pour gérer les champs du formulaire
   const [formData, setFormData] = useState({
+    npi: "",
     nom: "",
-    prenom: "",
-    sexe: "",
-    contact: "",
-    codePin: "",
+    prenom: ""
   });
+  
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    // Supprimer les espaces pour le NPI
+    const cleanValue = name === "npi" ? value.replace(/\s/g, "") : value;
+    setFormData({ ...formData, [name]: cleanValue });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Données prêtes pour le CRUD PHP :", formData);
-    // Ici se fera l'appel fetch() vers votre fichier PHP
+    setChargement(true);
+    setErreur(null);
+
+    // Appel API vers votre script PHP d'inscription initiale
+    fetch("http://localhost/backend/api/artisan/inscription.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData)
+    })
+      .then((res) => {
+        if (!res.ok && res.status !== 403) {
+          throw new Error("Une erreur est survenue lors de l'inscription.");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setChargement(false);
+        if (data.success) {
+          // Succès : On transmet les infos (idTest, idArtisan, dejaInscrit) au composant parent
+          // pour basculer automatiquement vers l'Étape 2 (ConfirmationParcours.jsx)
+          if (onInscriptionSuccess) {
+            onInscriptionSuccess(data);
+          }
+        } else {
+          // Cas d'erreur géré par le PHP (Ex: 403 - Test déjà débuté ou soumis)
+          setErreur(data.message);
+        }
+      })
+      .catch((err) => {
+        setChargement(false);
+        setErreur(err.message || "Impossible de joindre le serveur local.");
+      });
   };
 
   return (
-    <div className="register-container">
-      {/* Bande tricolore officielle du Bénin */}
-      <div className="top-stripe" />
-
+    <div className="register-wrapper">
       <div className="register-card">
+        
+        {/* En-tête de la carte */}
         <div className="register-header">
-          <h2>Inscription de l'Artisan</h2>
-          <p>Créez votre profil pour planifier votre test d'évaluation.</p>
+          <div className="arch-badge">Programme ARCH - ANPS</div>
+          <h2>Formulaire d'identification</h2>
+          <p>Veuillez renseigner vos informations officielles pour accéder au test d'évaluation.</p>
         </div>
 
+        {/* Affichage des messages d'erreur du serveur */}
+        {erreur && (
+          <div className="error-box">
+            <span className="error-icon">❌</span>
+            <p>{erreur}</p>
+          </div>
+        )}
+
+        {/* Formulaire */}
         <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-grid">
+          <div className="form-stack">
             
             <div className="input-group">
-              <label>Nom</label>
+              <label htmlFor="npi">Numéro Personnel d'Identification (NPI)</label>
               <input 
                 type="text" 
+                id="npi"
+                name="npi" 
+                value={formData.npi} 
+                onChange={handleInputChange} 
+                placeholder="Ex: 1234567890123" 
+                maxLength="20"
+                pattern="[0-9]+"
+                title="Le NPI contient uniquement des chiffres"
+                required 
+              />
+              <small className="input-help">Le NPI à 13 chiffres figure sur votre carte nationale d'identité biométrique ou votre acte de naissance ANIP.</small>
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="nom">Nom de famille</label>
+              <input 
+                type="text" 
+                id="nom"
                 name="nom" 
                 value={formData.nom} 
                 onChange={handleInputChange} 
-                placeholder="Ex: HOUNDEGNON" 
+                placeholder="En majuscules (Ex: DUPONT)" 
                 required 
               />
             </div>
 
             <div className="input-group">
-              <label>Prénom(s)</label>
+              <label htmlFor="prenom">Prénom(s)</label>
               <input 
                 type="text" 
+                id="prenom"
                 name="prenom" 
                 value={formData.prenom} 
                 onChange={handleInputChange} 
-                placeholder="Ex: Koffi" 
+                placeholder="Ex: Jean Koffi" 
                 required 
               />
-            </div>
-
-            <div className="input-group">
-              <label>Sexe</label>
-              <select name="sexe" value={formData.sexe} onChange={handleInputChange} required>
-                <option value="">Sélectionnez...</option>
-                <option value="M">Masculin</option>
-                <option value="F">Féminin</option>
-              </select>
-            </div>
-
-            <div className="input-group">
-              <label>Numéro de Contact (Téléphone)</label>
-              <input 
-                type="tel" 
-                name="contact" 
-                value={formData.contact} 
-                onChange={handleInputChange} 
-                placeholder="Ex: 01XXXXXXXX" 
-                required 
-              />
-            </div>
-
-            <div className="input-group full-width">
-              <label>Code PIN de Sécurité (4 chiffres)</label>
-              <input 
-                type="password" 
-                name="codePin" 
-                value={formData.codePin} 
-                onChange={handleInputChange} 
-                placeholder="••••" 
-                maxLength={4}
-                required 
-              />
-              <span className="input-help">Ce code secret vous servira à vous connecter plus tard.</span>
             </div>
 
           </div>
 
-          <button type="submit" className="submit-btn">
-            Créer mon compte ➔
+          <button type="submit" className="btn-submit" disabled={chargement}>
+            {chargement ? "Vérification de vos identifiants..." : "Valider mon identification ➔"}
           </button>
         </form>
+
+        <div className="register-footer">
+          <p>Vos données sont protégées de manière sécurisée conformément aux réglementations de la Commission Nationale de l'Informatique et des Libertés du Bénin.</p>
+        </div>
       </div>
 
+      {/* Feuille de style CSS intégrée respectant strictement la charte épurée de vos écrans */}
       <style>{`
-        .register-container {
-          min-height: 100vh;
-          background: #f1f5f9;
+        .register-wrapper {
           display: flex;
-          flex-direction: column;
+          justify-content: center;
           align-items: center;
-          padding: 60px 20px;
-          font-family: 'Montserrat', sans-serif;
-        }
-        .top-stripe {
-          height: 6px;
-          width: 100%;
-          max-width: 550px;
-          background: linear-gradient(to right, #008751 33.33%, #ffeb3b 33.33% 66.66%, #e81123 66.66%);
-          border-radius: 4px 4px 0 0;
+          min-height: 100vh;
+          background-color: #f8fafc;
+          padding: 20px;
+          font-family: system-ui, -apple-system, sans-serif;
         }
         .register-card {
           background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
           width: 100%;
-          max-width: 550px;
-          padding: 40px;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-          border-radius: 0 0 12px 12px;
+          max-width: 480px;
+          padding: 40px 32px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
         .register-header {
+          text-align: center;
           margin-bottom: 30px;
-          border-bottom: 1px solid #e2e8f0;
-          padding-bottom: 20px;
+        }
+        .arch-badge {
+          display: inline-block;
+          background: #eff6ff;
+          color: #1e40af;
+          font-size: 0.75rem;
+          font-weight: 700;
+          padding: 4px 12px;
+          border-radius: 50px;
+          margin-bottom: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .register-header h2 {
-          font-size: 1.6rem;
+          font-size: 1.4rem;
           color: #0f172a;
-          margin: 0 0 6px 0;
+          margin: 0 0 8px 0;
           font-weight: 700;
         }
         .register-header p {
+          font-size: 0.9rem;
           color: #64748b;
           margin: 0;
-          font-size: 0.9rem;
+          line-height: 1.4;
         }
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
+        
+        /* Style de la boîte d'alerte d'erreur */
+        .error-box {
+          background-color: #fef2f2;
+          border: 1px solid #fca5a5;
+          padding: 12px 16px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 24px;
+          text-align: left;
+        }
+        .error-icon { font-size: 1.1rem; }
+        .error-box p { margin: 0; font-size: 0.88rem; color: #991b1b; font-weight: 500; line-height: 1.4; }
+
+        .form-stack {
+          display: flex;
+          flex-direction: column;
           gap: 20px;
-          margin-bottom: 30px;
+          margin-bottom: 28px;
         }
         .input-group {
           display: flex;
           flex-direction: column;
           gap: 6px;
-        }
-        .input-group.full-width {
-          grid-column: span 2;
+          text-align: left;
         }
         .input-group label {
-          font-size: 0.85rem;
+          font-size: 0.88rem;
           font-weight: 600;
-          color: #475569;
+          color: #334155;
         }
-        .input-group input, .input-group select {
-          padding: 12px;
+        .input-group input {
+          width: 100%;
+          padding: 12px 14px;
           border: 1px solid #cbd5e1;
-          border-radius: 6px;
+          border-radius: 8px;
           font-size: 0.95rem;
-          background: #ffffff;
           color: #0f172a;
-          transition: all 0.2s ease;
+          background-color: #ffffff;
+          box-sizing: border-box;
+          transition: border-color 0.2s;
         }
-        .input-group input:focus, .input-group select:focus {
+        .input-group input:focus {
           outline: none;
-          border-color: #008751;
-          box-shadow: 0 0 0 3px rgba(0, 135, 81, 0.15);
+          border-color: #000000;
         }
         .input-help {
-          font-size: 0.8rem;
-          color: #94a3b8;
+          font-size: 0.78rem;
+          color: #64748b;
+          line-height: 1.3;
+          margin-top: 2px;
         }
-        .submit-btn {
+        
+        .btn-submit {
           width: 100%;
-          background: #0f172a;
+          background: #000000; /* Bouton principal noir homogène */
           color: #ffffff;
           border: none;
           padding: 14px;
@@ -189,14 +245,24 @@ export default function InscriptionArtisan() {
           font-weight: 600;
           border-radius: 8px;
           cursor: pointer;
-          transition: background 0.2s ease;
+          transition: background 0.2s;
         }
-        .submit-btn:hover {
+        .btn-submit:hover:not(:disabled) {
           background: #1e293b;
         }
-        @media (max-width: 640px) {
-          .form-grid { grid-template-columns: 1fr; }
-          .input-group.full-width { grid-column: span 1; }
+        .btn-submit:disabled {
+          background: #cbd5e1;
+          color: #94a3b8;
+          cursor: not-allowed;
+        }
+        .register-footer {
+          margin-top: 28px;
+          border-top: 1px solid #f1f5f9;
+          padding-top: 16px;
+          font-size: 0.76rem;
+          color: #94a3b8;
+          line-height: 1.4;
+          text-align: center;
         }
       `}</style>
     </div>

@@ -1,36 +1,39 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
-$select = "
-    SELECT c.idCentre, c.nomCentre, c.contactCentre, c.id_quartier_centre, q.nom_quartier
-    FROM centre_formation c JOIN quartier_village q ON q.id_quartier = c.id_quartier_centre
-";
+$id = $_GET['id'] ?? null;
 
 try {
-    if (isset($_GET['id'])) {
-        $stmt = $pdo->prepare($select . " WHERE c.idCentre = :id");
-        $stmt->execute(["id" => $_GET['id']]);
-        $centre = $stmt->fetch();
+    if ($id) {
+        // Sélection d'un seul centre spécifique
+        $stmt = $pdo->prepare("SELECT * FROM centre_formation WHERE idCentre = :id");
+        $stmt->execute(["id" => $id]);
+        $centre = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$centre) {
             http_response_code(404);
-            echo json_encode(["success" => false, "message" => "Centre de formation introuvable."]);
+            echo json_encode(["success" => false, "message" => "Centre introuvable."]);
             exit;
         }
-
         echo json_encode(["success" => true, "data" => $centre]);
     } else {
-        $stmt = $pdo->query($select . " ORDER BY c.nomCentre ASC");
-        echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
+        // Lecture globale avec jointure sur la localisation du centre
+        $stmt = $pdo->query("
+            SELECT c.idCentre, c.nomCentre, c.contactCentre, q.nom_quartier as quartier_centre
+            FROM centre_formation c
+            LEFT JOIN quartier_village q ON c.id_quartier_centre = q.id_quartier
+            ORDER BY c.idCentre DESC
+        ");
+        $centres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(["success" => true, "data" => $centres]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de la lecture : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur de lecture : " . $e->getMessage()]);
 }

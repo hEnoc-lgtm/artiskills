@@ -1,8 +1,8 @@
 <?php
-$host = "127.0.0.1";
-$dbname = "artiskills";
-$user = "root";
-$password = "";
+$host = "sql300.infinityfree.com";
+$dbname = "if0_42133398_artiskills";
+$user = "if0_42133398";
+$password = "YeLDZWkHzO9CaT";
 $charset = "utf8mb4";
 
 $dsn = "mysql:host=$host;dbname=$dbname;charset=$charset";

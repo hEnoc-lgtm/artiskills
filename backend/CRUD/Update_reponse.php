@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
 if (!in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'POST'], true)) {
     http_response_code(405);

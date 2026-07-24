@@ -2,149 +2,99 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
-/**
- * POST /api/artisan/inscription.php
- * Corps attendu (JSON) :
- * {
- *   "nom": "HOUNSOU",
- *   "prenom": "Koffi",
- *   "contact": "0196574823",
- *   "sexe": "Masculin",
- *   "nbrAnExp": 6,
- *   "codePin": "4821",
- *   "code_corpsmetier": "MEN",
- *   "residence": { "id_arrondissement": 34, "complement": "Quartier Zongo" },
- *   "atelier":   { "id_arrondissement": 34, "complement": "Zone artisanale" }  // optionnel
- * }
- */
-
-// On n'accepte que les requêtes POST
+// Sécurité : Bloquer si la méthode HTTP n'est pas un POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
-// Récupération et décodage du corps de la requête
+// Récupération de la charge utile JSON envoyée par le composant React
 $donnees = json_decode(file_get_contents("php://input"), true);
+$npi = $donnees['npi'] ?? null;
+$nom = $donnees['nom'] ?? null;
+$prenom = $donnees['prenom'] ?? null;
 
-// --- Validation des champs obligatoires ---
-$champsObligatoires = ["nom", "prenom", "contact", "sexe", "nbrAnExp", "codePin", "code_corpsmetier", "residence"];
-foreach ($champsObligatoires as $champ) {
-    if (empty($donnees[$champ]) && $donnees[$champ] !== 0) {
-        http_response_code(422);
-        echo json_encode(["success" => false, "message" => "Le champ '$champ' est obligatoire."]);
-        exit;
-    }
-}
-
-if (!preg_match('/^[0-9]{4}$/', $donnees['codePin'])) {
+// Validation des données obligatoires
+if (!$npi || !$nom || !$prenom) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le code PIN doit contenir exactement 4 chiffres."]);
-    exit;
-}
-
-if (empty($donnees['residence']['id_arrondissement'])) {
-    http_response_code(422);
-    echo json_encode(["success" => false, "message" => "L'arrondissement de résidence est obligatoire."]);
+    echo json_encode(["success" => false, "message" => "Le NPI, le nom et le prénom sont obligatoires pour l'identification."]);
     exit;
 }
 
 try {
-    // Vérifie si ce numéro de téléphone est déjà inscrit
-    $verif = $pdo->prepare("SELECT id_artisan FROM artisan WHERE contact = :contact");
-    $verif->execute(["contact" => $donnees['contact']]);
-    if ($verif->fetch()) {
-        http_response_code(409);
-        echo json_encode(["success" => false, "message" => "Ce numéro de téléphone est déjà inscrit."]);
+    // ÉTAPE 1 : Vérifier si ce NPI existe déjà dans la base de données
+    $stmtCheck = $pdo->prepare("SELECT id_artisan FROM artisan WHERE npi = :npi");
+    $stmtCheck->execute(['npi' => $npi]);
+    $artisanExistant = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+    if ($artisanExistant) {
+        $idArtisan = $artisanExistant['id_artisan'];
+
+        // Vérifier le statut du test associé pour cet artisan
+        $stmtTest = $pdo->prepare("SELECT idTest, heureDebut FROM test WHERE id_artisan = :id");
+        $stmtTest->execute(['id' => $idArtisan]);
+        $testExistant = $stmtTest->fetch(PDO::FETCH_ASSOC);
+
+        // CAS DE FRAUDE : Si le test a déjà commencé (heureDebut n'est plus NULL)
+        if ($testExistant && $testExistant['heureDebut'] !== null) {
+            
+            // Enregistrement de la tentative suspecte dans l'ENUM de l'historique
+            $stmtHist = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Réinscription détectée - Test débuté')");
+            $stmtHist->execute(['npi' => $npi]);
+
+            http_response_code(403);
+            echo json_encode(["success" => false, "message" => "Ce NPI a déjà été utilisé pour démarrer ou soumettre une évaluation. Tentative unique autorisée."]);
+            exit;
+        }
+
+        // CAS CONFORME : Déjà inscrit mais n'a pas fait le test lors de la session précédente
+        // Enregistrement de l'action conforme aux options strictes de l'ENUM
+        $stmtHist = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Réinscription détectée - Test non débuté')");
+        $stmtHist->execute(['npi' => $npi]);
+
+        if (!$testExistant) {
+            $stmtNewTest = $pdo->prepare("INSERT INTO test (id_artisan) VALUES (:id)");
+            $stmtNewTest->execute(['id' => $idArtisan]);
+            $idTest = $pdo->lastInsertId();
+        } else {
+            $idTest = $testExistant['idTest'];
+        }
+
+        echo json_encode([
+            "success" => true,
+            "dejaInscrit" => true,
+            "message" => "Rappel : Vous vous étiez déjà inscrit sur la plateforme ArtiSkills.",
+            "idArtisan" => (int)$idArtisan,
+            "idTest" => (int)$idTest
+        ]);
         exit;
     }
 
-    $pdo->beginTransaction();
+    // ÉTAPE 2 : Premier enregistrement en base de données (Nouvel Artisan complet)
+    $stmtInsert = $pdo->prepare("INSERT INTO artisan (npi, nom, prenom) VALUES (:npi, :nom, :prenom)");
+    $stmtInsert->execute(['npi' => $npi, 'nom' => $nom, 'prenom' => $prenom]);
+    $newIdArtisan = $pdo->lastInsertId();
 
-    // 1. Insertion de l'artisan
-    $stmt = $pdo->prepare("
-        INSERT INTO artisan (nom, prenom, contact, sexe, nbrAnExp, codePin, code_corpsmetier)
-        VALUES (:nom, :prenom, :contact, :sexe, :nbrAnExp, :codePin, :code_corpsmetier)
-    ");
-    $stmt->execute([
-        "nom"              => $donnees['nom'],
-        "prenom"           => $donnees['prenom'],
-        "contact"          => $donnees['contact'],
-        "sexe"             => $donnees['sexe'],
-        "nbrAnExp"         => $donnees['nbrAnExp'],
-        "codePin"          => password_hash($donnees['codePin'], PASSWORD_DEFAULT),
-        "code_corpsmetier" => $donnees['code_corpsmetier'],
-    ]);
-    $idArtisan = $pdo->lastInsertId();
+    // Enregistrement de sa première inscription dans l'ENUM de l'historique
+    $stmtHistNew = $pdo->prepare("INSERT INTO historique_inscription (npi_artisan, action_effectuee) VALUES (:npi, 'Première inscription')");
+    $stmtHistNew->execute(['npi' => $npi]);
 
-    // Requête commune pour récupérer les noms (arrondissement/commune/département)
-    // à partir d'un id_arrondissement
-    $sqlLocalisation = "
-        SELECT a.nom_arrondissement, c.nomCommune, d.nomDepartement, a.id_arrondissement
-        FROM arrondissement a
-        JOIN commune c ON c.idCommune = a.idCommune
-        JOIN departement d ON d.idDepart = c.idDepart
-        WHERE a.id_arrondissement = :id_arrondissement
-    ";
-
-    // 2. Insertion de la résidence (obligatoire)
-    $stmtLocRes = $pdo->prepare($sqlLocalisation);
-    $stmtLocRes->execute(["id_arrondissement" => $donnees['residence']['id_arrondissement']]);
-    $locRes = $stmtLocRes->fetch();
-
-    if (!$locRes) {
-        throw new Exception("Arrondissement de résidence introuvable.");
-    }
-
-    $stmtRes = $pdo->prepare("
-        INSERT INTO residence (nom_commune, nom_departement, nom_arrondissement, complement, id_arrondissement, id_artisan)
-        VALUES (:nom_commune, :nom_departement, :nom_arrondissement, :complement, :id_arrondissement, :id_artisan)
-    ");
-    $stmtRes->execute([
-        "nom_commune"       => $locRes['nomCommune'],
-        "nom_departement"   => $locRes['nomDepartement'],
-        "nom_arrondissement" => $locRes['nom_arrondissement'],
-        "complement"        => $donnees['residence']['complement'] ?? null,
-        "id_arrondissement" => $locRes['id_arrondissement'],
-        "id_artisan"        => $idArtisan,
-    ]);
-
-    // 3. Insertion de l'atelier (optionnel)
-    if (!empty($donnees['atelier']['id_arrondissement'])) {
-        $stmtLocAtelier = $pdo->prepare($sqlLocalisation);
-        $stmtLocAtelier->execute(["id_arrondissement" => $donnees['atelier']['id_arrondissement']]);
-        $locAtelier = $stmtLocAtelier->fetch();
-
-        if (!$locAtelier) {
-            throw new Exception("Arrondissement de l'atelier introuvable.");
-        }
-
-        $stmtAtelier = $pdo->prepare("
-            INSERT INTO adresse_atelier (nom_commune, nom_departement, nom_arrondissement, complement, id_arrondissement, id_artisan)
-            VALUES (:nom_commune, :nom_departement, :nom_arrondissement, :complement, :id_arrondissement, :id_artisan)
-        ");
-        $stmtAtelier->execute([
-            "nom_commune"        => $locAtelier['nomCommune'],
-            "nom_departement"    => $locAtelier['nomDepartement'],
-            "nom_arrondissement" => $locAtelier['nom_arrondissement'],
-            "complement"         => $donnees['atelier']['complement'] ?? null,
-            "id_arrondissement"  => $locAtelier['id_arrondissement'],
-            "id_artisan"         => $idArtisan,
-        ]);
-    }
-
-    $pdo->commit();
+    // Création de sa ligne de test vide prête à être associée plus tard aux questions
+    $stmtTestNew = $pdo->prepare("INSERT INTO test (id_artisan) VALUES (:id)");
+    $stmtTestNew->execute(['id' => $newIdArtisan]);
+    $idTestCreated = $pdo->lastInsertId();
 
     http_response_code(201);
     echo json_encode([
-        "success"    => true,
-        "message"    => "Inscription réussie.",
-        "id_artisan" => $idArtisan,
+        "success" => true,
+        "dejaInscrit" => false,
+        "message" => "Inscription initiale validée avec succès.",
+        "idArtisan" => (int)$newIdArtisan,
+        "idTest" => (int)$idTestCreated
     ]);
 
-} catch (Exception $e) {
-    $pdo->rollBack();
+} catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de l'inscription : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur critique du serveur : " . $e->getMessage()]);
 }

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fichiers sensibles (identifiants base de données)
+backend/config/database.php
+
+# Environnement
+.env
+.env.local

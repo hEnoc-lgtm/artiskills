@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
@@ -8,27 +8,36 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-// motDepasse volontairement exclu de toutes les réponses (donnée sensible hachée)
-$colonnes = "id_profil, nom, prenom, contact, dateCreation, sexe, emailPro, service, dernierAcces, role";
+$id = $_GET['id'] ?? null;
 
 try {
-    if (isset($_GET['id'])) {
-        $stmt = $pdo->prepare("SELECT $colonnes FROM profil WHERE id_profil = :id");
-        $stmt->execute(["id" => $_GET['id']]);
-        $profil = $stmt->fetch();
+    if ($id) {
+        // Lecture d'un agent unique (sans extraire la colonne motDepasse par sécurité)
+        $stmt = $pdo->prepare("
+            SELECT id_profil, nom, prenom, contact, sexe, emailPro, service, role 
+            FROM profil 
+            WHERE id_profil = :id
+        ");
+        $stmt->execute(["id" => $id]);
+        $profil = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$profil) {
             http_response_code(404);
-            echo json_encode(["success" => false, "message" => "Profil introuvable."]);
+            echo json_encode(["success" => false, "message" => "Profil utilisateur introuvable."]);
             exit;
         }
-
         echo json_encode(["success" => true, "data" => $profil]);
     } else {
-        $stmt = $pdo->query("SELECT $colonnes FROM profil ORDER BY nom ASC, prenom ASC");
-        echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
+        // Liste globale de tous les agents pour alimenter le tableau HTML du Dashboard
+        $stmt = $pdo->query("
+            SELECT id_profil, nom, prenom, contact, emailPro, service, role 
+            FROM profil 
+            ORDER BY id_profil DESC
+        ");
+        $profils = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode(["success" => true, "data" => $profils]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de la lecture : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur de lecture : " . $e->getMessage()]);
 }

@@ -1,35 +1,32 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
-if (!in_array($_SERVER['REQUEST_METHOD'], ['DELETE', 'POST'], true)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'DELETE') {
     http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
-$idCentre = $donnees['idCentre'] ?? $_GET['id'] ?? null;
+$idCentre = $donnees['idCentre'] ?? null;
 
 if (!$idCentre) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le champ 'idCentre' est obligatoire."]);
+    echo json_encode(["success" => false, "message" => "L'identifiant 'idCentre' est requis."]);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("DELETE FROM centre_formation WHERE idCentre = :idCentre");
-    $stmt->execute(["idCentre" => $idCentre]);
+    $stmt = $pdo->prepare("DELETE FROM centre_formation WHERE idCentre = :id");
+    $stmt->execute(["id" => $idCentre]);
 
-    if ($stmt->rowCount() === 0) {
+    if ($stmt->rowCount() > 0) {
+        echo json_encode(["success" => true, "message" => "Centre supprimé du registre avec succès."]);
+    } else {
         http_response_code(404);
-        echo json_encode(["success" => false, "message" => "Centre de formation introuvable."]);
-        exit;
+        echo json_encode(["success" => false, "message" => "Ce centre de formation n'existe pas."]);
     }
-
-    echo json_encode(["success" => true, "message" => "Centre de formation supprimé avec succès."]);
 } catch (PDOException $e) {
-    // Erreur typique : des affectations existent encore pour ce centre
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Suppression impossible : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur lors de la suppression : " . $e->getMessage()]);
 }

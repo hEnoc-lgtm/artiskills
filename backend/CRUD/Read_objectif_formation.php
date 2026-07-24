@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
@@ -8,29 +8,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
-$select = "
-    SELECT o.idObjectif, o.nombrePlaces, o.periode, o.code_corpsmetier, cm.libelle AS libelleMetier
-    FROM objectif_formation o JOIN corps_metier cm ON cm.code_corpsmetier = o.code_corpsmetier
-";
+$id = $_GET['id'] ?? null;
 
 try {
-    if (isset($_GET['id'])) {
-        $stmt = $pdo->prepare($select . " WHERE o.idObjectif = :id");
-        $stmt->execute(["id" => $_GET['id']]);
-        $objectif = $stmt->fetch();
-
-        if (!$objectif) {
-            http_response_code(404);
-            echo json_encode(["success" => false, "message" => "Objectif de formation introuvable."]);
-            exit;
-        }
-
-        echo json_encode(["success" => true, "data" => $objectif]);
+    if ($id) {
+        $stmt = $pdo->prepare("SELECT * FROM objectif_formation WHERE idObjectif = :id");
+        $stmt->execute(["id" => $id]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo json_encode(["success" => true, "data" => $data]);
     } else {
-        $stmt = $pdo->query($select . " ORDER BY o.periode DESC");
-        echo json_encode(["success" => true, "data" => $stmt->fetchAll()]);
+        // Lecture globale avec jointure sur les libellés de métiers
+        $stmt = $pdo->query("
+            SELECT o.idObjectif, o.nombrePlaces, o.periode, o.code_corpsmetier, m.libelle as nom_metier
+            FROM '; . ' o
+            LEFT JOIN corps_metier m ON o.code_corpsmetier = m.code_corpsmetier
+            ORDER BY o.idObjectif DESC
+        ");
+        echo json_encode(["success" => true, "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de la lecture : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur : " . $e->getMessage()]);
 }

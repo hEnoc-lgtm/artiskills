@@ -1,49 +1,71 @@
 <?php
-require_once __DIR__ . '/../../config/headers.php';
-require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../config/headers.php';
+require_once __DIR__ . '/../config/database.php';
 
-if (!in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'POST'], true)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT') {
     http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
 $idQuestion = $donnees['idQuestion'] ?? null;
 $enonce = trim($donnees['enonce'] ?? '');
-$typeQuestion = $donnees['typeQuestion'] ?? '';
-$code_corpsmetier = $donnees['code_corpsmetier'] ?? '';
+$typeQuestion = $donnees['typeQuestion'] ?? 'QCM_unique';
+$code_corpsmetier = trim($donnees['code_corpsmetier'] ?? '');
+$options = $donnees['options'] ?? [];
 
-if (!$idQuestion || $enonce === '' || $typeQuestion === '' || $code_corpsmetier === '') {
+if (!$idQuestion || $enonce === '' || $code_corpsmetier === '') {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Tous les champs sont obligatoires."]);
-    exit;
-}
-
-if (!in_array($typeQuestion, ['QCM_unique', 'QCM_multiple', 'VraiFaux'], true)) {
-    http_response_code(422);
-    echo json_encode(["success" => false, "message" => "typeQuestion doit être 'QCM_unique', 'QCM_multiple' ou 'VraiFaux'."]);
+    echo json_encode(["success" => false, "message" => "Données incomplètes pour la modification."]);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("
-        UPDATE question SET enonce = :enonce, typeQuestion = :typeQuestion, code_corpsmetier = :code_corpsmetier
-        WHERE idQuestion = :idQuestion
+    $pdo->beginTransaction();
+
+    // 1. Mise à jour de la question principale
+    $stmtQ = $pdo->prepare("
+        UPDATE question 
+        SET enonce = :enonce, typeQuestion = :typeQ, code_corpsmetier = :metier
+        WHERE idQuestion = :id
     ");
-    $stmt->execute([
-        "enonce" => $enonce, "typeQuestion" => $typeQuestion,
-        "code_corpsmetier" => $code_corpsmetier, "idQuestion" => $idQuestion,
+    $stmtQ->execute([
+        "enonce" => $enonce,
+        "typeQ" => $typeQuestion,
+        "metier" => $code_corpsmetier,
+        "id" => $idQuestion
     ]);
 
-    if ($stmt->rowCount() === 0) {
-        http_response_code(404);
-        echo json_encode(["success" => false, "message" => "Question introuvable ou aucune modification effectuée."]);
-        exit;
+    // 2. Mise à jour des réponses
+    // Pour simplifier et éviter les conflits d'IDs, on supprime les anciennes options et on réinsère les nouvelles
+    $stmtDelRep = $pdo->prepare("DELETE FROM reponse WHERE idQuestion = :id");
+    $stmtDelRep->execute(['id' => $idQuestion]);
+
+    $stmtInsRep = $pdo->prepare("
+        INSERT INTO reponse (libelleReponse, estCorrecte, idQuestion) 
+        VALUES (:libelle, :correct, :idQ)
+    ");
+
+    foreach ($options as $opt) {
+        $libelleOpt = trim($opt['libelleReponse'] ?? '');
+        $estCorrecteOpt = isset($opt['estCorrecte']) && $opt['estCorrecte'] == 1 ? 1 : 0;
+
+        if ($libelleOpt !== '') {
+            $stmtInsRep->execute([
+                "libelle" => $libelleOpt,
+                "correct" => $estCorrecteOpt,
+                "idQ" => $idQuestion
+            ]);
+        }
     }
 
-    echo json_encode(["success" => true, "message" => "Question mise à jour avec succès."]);
+    $pdo->commit();
+    echo json_encode(["success" => true, "message" => "Question et options QCM modifiées avec succès."]);
+
 } catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de la mise à jour : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur de modification : " . $e->getMessage()]);
 }
