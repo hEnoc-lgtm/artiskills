@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/headers.php';
 require_once __DIR__ . '/../config/database.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
@@ -10,13 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT
 
 $donnees = json_decode(file_get_contents("php://input"), true);
 $id_profil = $donnees['id_profil'] ?? null;
-
-if (!$id_profil) {
-    http_response_code(422);
-    echo json_encode(["success" => false, "message" => "L'identifiant 'id_profil' est obligatoire pour la modification."]);
-    exit;
-}
-
 $nom = trim($donnees['nom'] ?? '');
 $prenom = trim($donnees['prenom'] ?? '');
 $contact = trim($donnees['contact'] ?? '');
@@ -24,61 +17,103 @@ $sexe = $donnees['sexe'] ?? '';
 $emailPro = trim($donnees['emailPro'] ?? '');
 $service = trim($donnees['service'] ?? '');
 $role = $donnees['role'] ?? '';
-$motdepasse = $donnees['motdepasse'] ?? ''; // Optionnel lors de la modification
+$motDePasse = $donnees['motDePasse'] ?? '';
 
-// Validation des valeurs d'ENUM strictes de votre base de données
-if ($sexe !== '' && !in_array($sexe, ['Masculin', 'Féminin'], true)) {
+if (!$id_profil || $nom === '' || $prenom === '' || $contact === '' || $sexe === '' || $emailPro === '' || $service === '' || $role === '') {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "sexe doit être 'Masculin' ou 'Féminin'."]);
+    echo json_encode(["success" => false, "message" => "Tous les champs obligatoires sont requis."]);
     exit;
 }
-if ($role !== '' && !in_array($role, ['agent simple', 'administratueur'], true)) {
+
+if (!in_array($sexe, ['Masculin', 'Féminin'], true)) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "role doit être 'agent simple' ou 'administratueur'."]);
+    echo json_encode(["success" => false, "message" => "Le sexe doit être 'Masculin' ou 'Féminin'."]);
+    exit;
+}
+
+if (!in_array($role, ['agent simple', 'administratueur'], true)) {
+    http_response_code(422);
+    echo json_encode(["success" => false, "message" => "Le rôle doit être 'agent simple' ou 'administratueur'."]);
     exit;
 }
 
 try {
-    // Vérifier si la nouvelle adresse e-mail modifiée n'est pas déjà prise par un AUTRE agent
+    // Vérifier si le profil existe
+    $verif = $pdo->prepare("SELECT id_profil FROM profil WHERE id_profil = :id");
+    $verif->execute(["id" => $id_profil]);
+    if (!$verif->fetch()) {
+        http_response_code(404);
+        echo json_encode(["success" => false, "message" => "Profil introuvable."]);
+        exit;
+    }
+
+    // Vérifier si l'email existe déjà (sauf pour ce profil)
     $verifEmail = $pdo->prepare("SELECT id_profil FROM profil WHERE emailPro = :email AND id_profil != :id");
     $verifEmail->execute(["email" => $emailPro, "id" => $id_profil]);
     if ($verifEmail->fetch()) {
         http_response_code(409);
-        echo json_encode(["success" => false, "message" => "Cette adresse e-mail professionnelle appartient déjà à un autre profil."]);
+        echo json_encode(["success" => false, "message" => "Cette adresse e-mail est déjà utilisée par un autre compte."]);
         exit;
     }
 
-    // Si l'administrateur a saisi un nouveau mot de passe, on le hache et on met à jour toute la ligne
-    if ($motdepasse !== '') {
-        $stmt = $pdo->prepare("
-            UPDATE profil 
-            SET nom = :nom, prenom = :prenom, contact = :contact, sexe = :sexe, 
-                motDepasse = :mdp, emailPro = :emailPro, service = :service, role = :role 
-            WHERE id_profil = :id
-        ");
-        $params = [
-            "nom" => $nom, "prenom" => $prenom, "contact" => $contact, "sexe" => $sexe,
-            "mdp" => password_hash($motdepasse, PASSWORD_DEFAULT),
-            "emailPro" => $emailPro, "service" => $service, "role" => $role, "id" => $id_profil
-        ];
-    } else {
-        // Sinon, on met à jour les infos sans toucher au mot de passe actuel en base de données
-        $stmt = $pdo->prepare("
-            UPDATE profil 
-            SET nom = :nom, prenom = :prenom, contact = :contact, sexe = :sexe, 
-                emailPro = :emailPro, service = :service, role = :role 
-            WHERE id_profil = :id
-        ");
-        $params = [
-            "nom" => $nom, "prenom" => $prenom, "contact" => $contact, "sexe" => $sexe,
-            "emailPro" => $emailPro, "service" => $service, "role" => $role, "id" => $id_profil
-        ];
+    // Vérifier si le contact existe déjà (sauf pour ce profil)
+    $verifContact = $pdo->prepare("SELECT id_profil FROM profil WHERE contact = :contact AND id_profil != :id");
+    $verifContact->execute(["contact" => $contact, "id" => $id_profil]);
+    if ($verifContact->fetch()) {
+        http_response_code(409);
+        echo json_encode(["success" => false, "message" => "Ce numéro de contact est déjà utilisé par un autre compte."]);
+        exit;
     }
 
-    $stmt->execute($params);
-    echo json_encode(["success" => true, "message" => "Compte utilisateur mis à jour avec succès dans le CRUD."]);
+    // Mise à jour
+    if (!empty($motDePasse)) {
+        // Avec nouveau mot de passe
+        $stmt = $pdo->prepare("
+            UPDATE profil 
+            SET nom = :nom, prenom = :prenom, contact = :contact, sexe = :sexe, 
+                emailPro = :emailPro, service = :service, role = :role, 
+                motDepasse = :motDepasse
+            WHERE id_profil = :id
+        ");
+        $stmt->execute([
+            "nom" => $nom,
+            "prenom" => $prenom,
+            "contact" => $contact,
+            "sexe" => $sexe,
+            "emailPro" => $emailPro,
+            "service" => $service,
+            "role" => $role,
+            "motDepasse" => password_hash($motDePasse, PASSWORD_DEFAULT),
+            "id" => $id_profil
+        ]);
+    } else {
+        // Sans changer le mot de passe
+        $stmt = $pdo->prepare("
+            UPDATE profil 
+            SET nom = :nom, prenom = :prenom, contact = :contact, sexe = :sexe, 
+                emailPro = :emailPro, service = :service, role = :role
+            WHERE id_profil = :id
+        ");
+        $stmt->execute([
+            "nom" => $nom,
+            "prenom" => $prenom,
+            "contact" => $contact,
+            "sexe" => $sexe,
+            "emailPro" => $emailPro,
+            "service" => $service,
+            "role" => $role,
+            "id" => $id_profil
+        ]);
+    }
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Profil modifié avec succès.",
+        "data" => ["id_profil" => (int) $id_profil, "nom" => $nom, "prenom" => $prenom]
+    ]);
 
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur lors de la modification : " . $e->getMessage()]);
 }
+?>

@@ -2,78 +2,74 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
+// 1. On récupère seulement l'ID du test depuis l'URL
 $idTest = $_GET['idTest'] ?? null;
-$idMetier = $_GET['idMetier'] ?? null;
 
-if (!$idTest || !$idMetier) {
+if (!$idTest) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Paramètres manquants."]);
+    echo json_encode(["success" => false, "message" => "ID de test manquant."]);
     exit;
 }
 
 try {
-    // =====================================================
-    // SECURITY : PERSISTENT TIMEOUT MANAGEMENT
-    // =====================================================
-    $stmtTime = $pdo->prepare("SELECT dateDebutTest FROM test WHERE idTest = :idTest");
+    // 2. RÉCUPÉRATION DU MÉTIER DEPUIS LA TABLE TEST (C'est la clé du succès !)
+    $stmtMetier = $pdo->prepare("SELECT code_corpsmetier FROM test WHERE idTest = :idTest");
+    $stmtMetier->execute(['idTest' => $idTest]);
+    $code_corpsmetier = $stmtMetier->fetchColumn();
+    
+    if (!$code_corpsmetier) {
+        http_response_code(404);
+        echo json_encode([
+            "success" => false, 
+            "message" => "Aucun corps de métier associé à ce test. Veuillez compléter le prétest d'abord."
+        ]);
+        exit;
+    }
+
+    // 3. GESTION DU CHRONOMÈTRE
+    $stmtTime = $pdo->prepare("SELECT date FROM test WHERE idTest = :idTest");
     $stmtTime->execute(['idTest' => $idTest]);
     $dateDebut = $stmtTime->fetchColumn();
 
-    $maintenant = time(); // Epoch timestamp actuel du serveur en secondes
-    $dureeMaxTest = 600;  // 10 minutes accordées (600 secondes)
+    $maintenant = time();
+    $dureeMaxTest = 600; // 10 minutes
 
     if (!$dateDebut) {
-        // Premier lancement du test : enregistrement de l'heure exacte de départ
-        $stmtStart = $pdo->prepare("UPDATE test SET dateDebutTest = NOW() WHERE idTest = :idTest");
+        $stmtStart = $pdo->prepare("UPDATE test SET date = NOW() WHERE idTest = :idTest");
         $stmtStart->execute(['idTest' => $idTest]);
         $tempsRestantCalcule = $dureeMaxTest; 
     } else {
-        // Retour d'une déconnexion : calcul du temps réellement écoulé à l'extérieur
         $timestampDebut = strtotime($dateDebut);
         $tempsEcoule = $maintenant - $timestampDebut;
-        
-        $tempsRestantCalcule = $dureeMaxTest - $tempsEcoule;
-        
-        if ($tempsRestantCalcule < 0) {
-            $tempsRestantCalcule = 0; // Le temps est dépassé, le React fermera l'accès
-        }
+        $tempsRestantCalcule = max(0, $dureeMaxTest - $tempsEcoule);
     }
 
-    // =====================================================
-    // ANTI-CHEAT : CLEANING UNANSWERED QUESTIONS
-    // =====================================================
-    // Si l'artisan a quitté l'écran, on supprime de sa liste les questions où estVerouillee = 0
+    // 4. NETTOYAGE ANTI-TRICHE
     $stmtClean = $pdo->prepare("DELETE FROM question_test WHERE idTest = :idTest AND estVerouillee = 0");
     $stmtClean->execute(['idTest' => $idTest]);
 
-    // =====================================================
-    // PROGRESSION : REGENERATING THE MISSING SLOTS
-    // =====================================================
-    // On compte combien de questions ont été définitivement verrouillées lors des connexions précédentes
+    // 5. COMPTE DES QUESTIONS DÉJÀ RÉPONDUES
     $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM question_test WHERE idTest = :idTest AND estVerouillee = 1");
     $stmtCount->execute(['idTest' => $idTest]);
     $questionsVerrouillees = $stmtCount->fetchColumn();
-
     $questionsManquantes = 10 - $questionsVerrouillees;
 
-    // Si le test est incomplet et qu'il reste du temps, on pioche de nouvelles questions au hasard
+    // 6. RÉCUPÉRATION DES NOUVELLES QUESTIONS
     if ($questionsManquantes > 0 && $tempsRestantCalcule > 0) {
         $stmtNew = $pdo->prepare("
             SELECT idQuestion FROM question 
-            WHERE idMetier = :idMetier 
+            WHERE code_corpsmetier = :code_corpsmetier 
             AND idQuestion NOT IN (SELECT idQuestion FROM question_test WHERE idTest = :idTest)
             ORDER BY RAND() 
             LIMIT :limite
         ");
         
-        // Configuration stricte des types de données pour la clause LIMIT en PDO
-        $stmtNew->bindValue(':idMetier', $idMetier, PDO::PARAM_INT);
+        $stmtNew->bindValue(':code_corpsmetier', $code_corpsmetier, PDO::PARAM_STR);
         $stmtNew->bindValue(':idTest', $idTest, PDO::PARAM_INT);
         $stmtNew->bindValue(':limite', $questionsManquantes, PDO::PARAM_INT);
         $stmtNew->execute();
         $nouvellesQuestions = $stmtNew->fetchAll(PDO::FETCH_ASSOC);
 
-        // Insertion séquentielle des nouvelles questions pour boucher les trous (de l'ordre 1 à 10)
         $ordreActuel = $questionsVerrouillees + 1;
         foreach ($nouvellesQuestions as $q) {
             $stmtInsert = $pdo->prepare("
@@ -81,20 +77,15 @@ try {
                 VALUES (:ordre, :idTest, :idQuestion, 0, 0)
             ");
             $stmtInsert->execute([
-                'ordre' => $ordreActuel,
-                'idTest' => $idTest,
-                'idQuestion' => $q['idQuestion']
+                'ordre' => $ordreActuel, 'idTest' => $idTest, 'idQuestion' => $q['idQuestion']
             ]);
             $ordreActuel++;
         }
     }
 
-    // =====================================================
-    // FINAL EXTRACTION : SENDING TO REACT FRONTEND
-    // =====================================================
-    // Récupération des 10 questions finales ordonnées de l'artisan
+    // 7. EXTRACTION FINALE POUR L'AFFICHAGE
     $stmtFinal = $pdo->prepare("
-        SELECT qt.ordre, qt.idQuestion, q.libelleQuestion, qt.estVerouillee, qt.reponseDonnee
+        SELECT qt.ordre, qt.idQuestion, q.enonce, qt.estVerouillee, qt.reponseDonnee
         FROM question_test qt
         JOIN question q ON qt.idQuestion = q.idQuestion
         WHERE qt.idTest = :idTest
@@ -103,14 +94,12 @@ try {
     $stmtFinal->execute(['idTest' => $idTest]);
     $listeQuestions = $stmtFinal->fetchAll(PDO::FETCH_ASSOC);
 
-    // Chargement dynamique des options de réponses QCM associées à chaque question
     foreach ($listeQuestions as &$q) {
-        $stmtRep = $pdo->prepare("SELECT idReponse, libelleReponse FROM reponse WHERE idQuestion = :idQ");
+        $stmtRep = $pdo->prepare("SELECT idReponse, enonce FROM reponse WHERE idQuestion = :idQ");
         $stmtRep->execute(['idQ' => $q['idQuestion']]);
         $q['options'] = $stmtRep->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Envoi de la charge de données au format JSON structuré
     echo json_encode([
         "success" => true, 
         "questions" => $listeQuestions,
@@ -119,5 +108,6 @@ try {
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur système PDO : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur PDO : " . $e->getMessage()]);
 }
+?>

@@ -29,7 +29,6 @@ function getOrCreateQuartier($pdo, $nom_quartier, $id_arrondissement, $latitude,
     }
 
     // 2. S'il n'existe pas, on l'insère avec les coordonnées OSM
-    // Note: Si l'API n'a pas trouvé les coords, elles seront NULL, ce qui est gérable
     $stmtInsert = $pdo->prepare("
         INSERT INTO quartier_village (nom_quartier, nom_normalise, id_arrondissement, latitude, longitude)
         VALUES (:nom, :nom_norm, :id_arr, :lat, :lon)
@@ -92,6 +91,18 @@ try {
         'exp' => $nbrAnExp,
         'qr' => $id_quartier_residence,
         'qa' => $id_quartier_atelier,
+        'id' => $idArtisan
+    ]);
+
+    // ✅ CORRECTION CRUCIALE : Mettre à jour la table 'test' pour lier le métier au test en cours
+    // Cela permet au fichier chargerQuestions.php de savoir quelles questions charger
+    $stmtUpdateTest = $pdo->prepare("
+        UPDATE test 
+        SET code_corpsmetier = :metier 
+        WHERE id_artisan = :id
+    ");
+    $stmtUpdateTest->execute([
+        'metier' => $code_corpsmetier,
         'id' => $idArtisan
     ]);
 

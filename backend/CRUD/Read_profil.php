@@ -12,9 +12,9 @@ $id = $_GET['id'] ?? null;
 
 try {
     if ($id) {
-        // Lecture d'un agent unique (sans extraire la colonne motDepasse par sécurité)
+        // Lecture d'un profil unique (utile pour l'édition)
         $stmt = $pdo->prepare("
-            SELECT id_profil, nom, prenom, contact, sexe, emailPro, service, role 
+            SELECT id_profil, nom, prenom, contact, sexe, emailPro, service, role, dernierAcces 
             FROM profil 
             WHERE id_profil = :id
         ");
@@ -28,9 +28,9 @@ try {
         }
         echo json_encode(["success" => true, "data" => $profil]);
     } else {
-        // Liste globale de tous les agents pour alimenter le tableau HTML du Dashboard
+        // Liste globale de tous les profils pour le tableau du Dashboard
         $stmt = $pdo->query("
-            SELECT id_profil, nom, prenom, contact, emailPro, service, role 
+            SELECT id_profil, nom, prenom, contact, sexe, emailPro, service, role, dernierAcces 
             FROM profil 
             ORDER BY id_profil DESC
         ");
@@ -41,3 +41,4 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur de lecture : " . $e->getMessage()]);
 }
+?>

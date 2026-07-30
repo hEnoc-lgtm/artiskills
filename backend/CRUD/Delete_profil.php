@@ -2,34 +2,45 @@
 require_once __DIR__ . '/../config/headers.php';
 require_once __DIR__ . '/../config/database.php';
 
-if (!in_array($_SERVER['REQUEST_METHOD'], ['DELETE', 'POST'], true)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
     exit;
 }
 
 $donnees = json_decode(file_get_contents("php://input"), true);
-$id_profil = $donnees['id_profil'] ?? $_GET['id'] ?? null;
+$id_profil = $donnees['id_profil'] ?? null;
 
 if (!$id_profil) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Le champ 'id_profil' est obligatoire."]);
+    echo json_encode(["success" => false, "message" => "L'identifiant du profil est requis."]);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("DELETE FROM profil WHERE id_profil = :id_profil");
-    $stmt->execute(["id_profil" => $id_profil]);
+    // Vérifier si le profil existe
+    $verif = $pdo->prepare("SELECT * FROM profil WHERE id_profil = :id");
+    $verif->execute(["id" => $id_profil]);
+    $profil = $verif->fetch(PDO::FETCH_ASSOC);
 
-    if ($stmt->rowCount() === 0) {
+    if (!$profil) {
         http_response_code(404);
         echo json_encode(["success" => false, "message" => "Profil introuvable."]);
         exit;
     }
 
-    echo json_encode(["success" => true, "message" => "Profil supprimé avec succès."]);
+    // Supprimer le profil
+    $stmt = $pdo->prepare("DELETE FROM profil WHERE id_profil = :id");
+    $stmt->execute(["id" => $id_profil]);
+
+    echo json_encode([
+        "success" => true,
+        "message" => "Profil supprimé avec succès.",
+        "data" => ["id_profil" => (int) $id_profil]
+    ]);
+
 } catch (PDOException $e) {
-    // Erreur typique : ce profil a encore des suppressions tracées dans historique_suppression
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Suppression impossible : " . $e->getMessage()]);
+    echo json_encode(["success" => false, "message" => "Erreur lors de la suppression : " . $e->getMessage()]);
 }
+?>

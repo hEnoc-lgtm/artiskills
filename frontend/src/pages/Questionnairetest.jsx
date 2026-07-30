@@ -1,35 +1,59 @@
 import { useState, useEffect, useCallback } from "react";
 
-export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
+// ✅ PLUS BESOIN de code_corpsmetier en prop - le PHP le récupère en base
+export default function QuestionnaireTest({ idTest, onTestTermine }) {
   const [questions, setQuestions] = useState([]);
   const [indexCourant, setIndexCourant] = useState(0);
-  const [reponseSelectionnee, setReponseSelectionnee] = useState(null); // Objet { id, libelle }
+  const [reponseSelectionnee, setReponseSelectionnee] = useState(null);
   const [tempsRestant, setTempsRestant] = useState(null); 
   const [chargement, setChargement] = useState(true);
+  const [erreurApi, setErreurApi] = useState(null);
 
-  // A. CHARGEMENT INITIAL : Connexion au script PHP de l'Étape 5
   useEffect(() => {
-    fetch(`http://localhost/Code/backend/api/test/charger_questions.php?idTest=${idTest}&idMetier=${idMetier}`)
+    console.log("🔍 DÉBUT CHARGEMENT TEST");
+    console.log("🔹 idTest reçu :", idTest);
+
+    // ✅ On vérifie SEULEMENT idTest
+    if (!idTest) {
+      console.error("❌ ERREUR : idTest est manquant !");
+      setErreurApi("Données de session manquantes. Veuillez recommencer le test.");
+      setChargement(false);
+      return;
+    }
+
+    // ✅ URL simplifiée - juste l'ID du test
+    const url = `http://localhost/Code/backend/api/test/chargerQuestions.php?idTest=${idTest}`;
+    console.log("🌐 URL appelée :", url);
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        console.log(" RÉPONSE DU SERVEUR :", data);
         if (data.success) {
           setQuestions(data.questions);
-          setTempsRestant(data.tempsRestant); // Récupération du chrono calculé par le serveur
+          setTempsRestant(data.tempsRestant);
+          
+          if (data.questions.length === 0) {
+            setErreurApi("Aucune question trouvée en base de données pour ce métier.");
+          }
+        } else {
+          console.error("❌ Le serveur a répondu success:false :", data.message);
+          setErreurApi(data.message || "Erreur inconnue du serveur.");
         }
         setChargement(false);
       })
       .catch((err) => {
-        console.error("Erreur de synchronisation", err);
+        console.error("❌ ERREUR RÉSEAU :", err);
+        setErreurApi("Impossible de contacter le serveur backend. Vérifiez que XAMPP est lancé.");
         setChargement(false);
       });
-  }, [idTest, idMetier]);
+  }, [idTest]); // ✅ Dépendance nettoyée - juste idTest
 
   const handleFinChronoAutomatically = useCallback(() => {
     alert("Temps écoulé ! Votre test est clôturé.");
     if (onTestTermine) onTestTermine();
   }, [onTestTermine]);
 
-  // B. GESTION DU CHRONOMÈTRE
   useEffect(() => {
     if (chargement || tempsRestant === null || questions.length === 0) return;
 
@@ -49,17 +73,14 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
     return `${min}:${sec}`;
   };
 
-  // C. PROGRESSION : Validation et mise à jour de la table question_test
   const handleSuivant = () => {
     const qActuelle = questions[indexCourant];
 
-    // Si la question était bloquée de la session précédente, on avance directement
     if (qActuelle.estVerouillee === 1) {
       passerAQuestionSuivante();
       return;
     }
 
-    // Appel à sauvegarder_reponse.php
     fetch("http://localhost/Code/backend/api/test/sauvegarder_reponse.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,14 +109,23 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
   const passerAQuestionSuivante = () => {
     if (indexCourant < 9 && indexCourant < questions.length - 1) {
       setIndexCourant(indexCourant + 1);
-      setReponseSelectionnee(null); // Reset pour l'écran suivant
+      setReponseSelectionnee(null);
     } else {
-      if (onTestTermine) onTestTermine(); // Test fini !
+      if (onTestTermine) onTestTermine();
     }
   };
 
   if (chargement) return <div className="test-loader">Génération sécurisée du test et synchronisation du chronomètre...</div>;
-  if (questions.length === 0) return <div className="test-loader">Erreur : Impossible de charger le questionnaire.</div>;
+  
+  if (erreurApi || questions.length === 0) {
+    return (
+      <div className="test-loader" style={{color: '#991b1b'}}>
+        <h3>❌ Erreur de chargement</h3>
+        <p>{erreurApi || "Aucune question disponible."}</p>
+        <p style={{fontSize: '0.9rem', color: '#64748b'}}>Ouvrez la console du navigateur (F12) pour voir les détails.</p>
+      </div>
+    );
+  }
 
   const qActuelle = questions[indexCourant];
   const estVerrouillee = qActuelle.estVerouillee === 1;
@@ -105,24 +135,24 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
       <div className="test-card">
         <div className="test-header">
           <span className="brand-name">ArtiSkills</span>
-          <span className="question-count">Question {indexCourant + 1} / 10</span>
+          <span className="question-count">Question {indexCourant + 1} / {questions.length}</span>
           <span className="test-timer">🕒 {formaterChrono()}</span>
         </div>
 
-        <h3 className="question-text">{qActuelle.libelleQuestion}</h3>
+        <h3 className="question-text">{qActuelle.enonce}</h3>
 
         <div className="options-stack">
           {qActuelle.options.map((opt) => {
-            const estSelectionnee = reponseSelectionnee?.id === opt.idReponse || qActuelle.reponseDonnee === opt.libelleReponse;
+            const estSelectionnee = reponseSelectionnee?.id === opt.idReponse || qActuelle.reponseDonnee === opt.enonce;
             
             return (
               <div 
                 key={opt.idReponse} 
                 className={`option-card ${estSelectionnee ? "selected" : ""} ${estVerrouillee ? "grisee" : ""}`}
-                onClick={() => !estVerrouillee && setReponseSelectionnee({ id: opt.idReponse, libelle: opt.libelleReponse })}
+                onClick={() => !estVerrouillee && setReponseSelectionnee({ id: opt.idReponse, libelle: opt.enonce })}
               >
                 <div className={`radio-circle ${estSelectionnee ? "checked" : ""}`} />
-                <span className="option-label">{opt.libelleReponse}</span>
+                <span className="option-label">{opt.enonce}</span>
               </div>
             );
           })}
@@ -145,7 +175,7 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
             disabled={!reponseSelectionnee && !estVerrouillee} 
             onClick={handleSuivant}
           >
-            {indexCourant === 9 ? "Terminer le test" : "Valider et suivant"}
+            {indexCourant === questions.length - 1 ? "Terminer le test" : "Valider et suivant"}
           </button>
         </div>
       </div>
@@ -159,10 +189,11 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
       </div>
 
       <style>{`
-        .test-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; background: #f8fafc; font-family: system-ui, sans-serif; padding: 20px; }
+        .test-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; background: #f8fafc; font-family: 'Montserrat', system-ui, sans-serif; padding: 20px; }
         .test-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; width: 100%; max-width: 580px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .test-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 24px; }
-        .brand-name { font-weight: 700; color: #0f172a; } .test-timer { color: #991b1b; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .brand-name { font-weight: 700; color: #0f172a; } 
+        .test-timer { color: #991b1b; font-weight: 600; font-variant-numeric: tabular-nums; }
         .question-text { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin-bottom: 28px; line-height: 1.4; text-align: left; }
         .options-stack { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
         .option-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s; background: #ffffff; text-align: left; user-select: none; }
@@ -181,7 +212,7 @@ export default function QuestionnaireTest({ idTest, idMetier, onTestTermine }) {
         .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.85rem; font-weight: 600; background: #e2e8f0; color: #64748b; }
         .step-dot.active { background: #bfdbfe; color: #1e3a8a; }
         .step-dot.completed { background: #dcfce7; color: #14532d; font-size: 0.75rem; }
-        .test-loader { font-family: system-ui, sans-serif; color: #475569; font-size: 1.1rem; text-align: center; margin-top: 35vh; }
+        .test-loader { font-family: 'Montserrat', sans-serif; color: #475569; font-size: 1.1rem; text-align: center; margin-top: 35vh; display: flex; flex-direction: column; align-items: center; gap: 16px; }
       `}</style>
     </div>
   );

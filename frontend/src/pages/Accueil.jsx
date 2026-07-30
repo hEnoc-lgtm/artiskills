@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-// Note : Nous avons retiré "Link" car nous utilisons maintenant les props de navigation
 
-// Mettez ici les chemins vers vos photos d'artisans au travail
 const images = [
   "/images/photo%20fond1.jpeg",
   "/images/photo%20fond2.jpg.jpeg",
@@ -11,27 +9,28 @@ const images = [
   "/images/phtot%20fond5.jpg.jpeg",
 ];
 
-// 1. On récupère les fonctions de navigation passées par App.jsx
 export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    // Gestionnaire du fondu enchaîné (Toutes les 7 secondes)
     const timer = setInterval(() => setIndex((i) => (i + 1) % images.length), 7000);
     return () => clearInterval(timer);
   }, []);
 
   return (
     <div className="page-container">
-      {/* 2. SECTION HERO DYNAMIQUE */}
       <section className="hero-section">
         
-        {/* 2. REMPLACÉ : Bouton utilisant la fonction de navigation admin */}
+        {/* BOUTON HAUT DROITE : Réservé aux Agents/Admins */}
         <button 
-          onClick={onNavigateToAdmin} 
+          onClick={() => {
+            console.log("✅ Navigation vers Admin");
+            onNavigateToAdmin();
+          }} 
           className="btn hero-login-btn"
+          title="Accès réservé au personnel de l'ANPS"
         >
-          Se connecter
+          👤 Espace Agent / Admin
         </button>
 
         <div className="hero-carousel">
@@ -56,13 +55,17 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
           </p>
           
           <div className="action-buttons">
-            {/* 3. REMPLACÉ : Bouton utilisant la fonction de navigation inscription */}
+            {/* BOUTON PRINCIPAL : Mène directement à l'inscription */}
             <button 
-              onClick={onNavigateToRegister} 
+              onClick={() => {
+                console.log("✅ Navigation vers Inscription");
+                onNavigateToRegister();
+              }} 
               className="btn btn-primary"
             >
               Inscrivez-vous à un test
             </button>
+            
             <button className="btn btn-secondary">En savoir plus</button>
           </div>
 
@@ -73,11 +76,9 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
         </div>
       </section>
 
-      {/* 3. DOUBLE FOOTER (RUBAN NATIONAL + FOOTER ARTISKILLS) — mise en page conforme à l'image */}
+      {/* FOOTER */}
       <footer className="site-footer">
-        {/* Le ruban tricolore officiel du Bénin */}
         <div className="benin-flag-ribbon" />
-
         <div className="footer-content">
           <div className="footer-grid">
             <div className="footer-column">
@@ -89,7 +90,6 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
                 <li><a href="#orientations">Orientations stratégiques</a></li>
               </ul>
             </div>
-
             <div className="footer-column">
               <h3>L'ANPS</h3>
               <ul>
@@ -98,7 +98,6 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
                 <li><a href="#organisation">Organisation et fonctionnement</a></li>
               </ul>
             </div>
-
             <div className="footer-column">
               <h3>MÉDIAS</h3>
               <ul>
@@ -108,7 +107,6 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
                 <li><a href="#galerie-videos">Galerie Vidéos</a></li>
               </ul>
             </div>
-
             <div className="footer-column">
               <h3>DOCUMENTATION</h3>
               <ul>
@@ -119,7 +117,6 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
                 <li><a href="#sante">Ministère de la Santé</a></li>
               </ul>
             </div>
-
             <div className="footer-column contact-col">
               <h3>NOUS CONTACTER</h3>
               <ul className="contact-list">
@@ -131,7 +128,6 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
             </div>
           </div>
         </div>
-
         <div className="footer-bottom-bar">
           <div className="footer-bottom-inner">
             <div className="social-icons" aria-hidden>
@@ -145,330 +141,41 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="12" r="3" fill="currentColor"/><circle cx="17" cy="12" r="3" fill="currentColor"/></svg>
               </span>
             </div>
-
             <div className="copy-line">© {new Date().getFullYear()} ANPS | Mentions Légales &nbsp;&nbsp; Administration</div>
           </div>
         </div>
       </footer>
 
-      {/* Styles CSS Modernisés */}
       <style>{`
-        /* Global & Reset basique */
         html, body, #root { height: 100%; margin: 0; padding: 0; }
-        .page-container {
-          font-family: 'Montserrat', sans-serif;
-          color: #1e293b;
-          background-color: #f8fafc;
-          margin: 0;
-          padding: 0;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        /* 1. Header Styles */
-        .site-header {
-          position: sticky;
-          top: 0;
-          left: 0;
-          right: 0;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 16px;
-          padding: 16px 5%;
-          background: rgba(255, 255, 255, 0.95);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-          z-index: 1000;
-        }
-        .logo-left,
-        .logo-right {
-          display: flex;
-          align-items: center;
-          min-width: 140px;
-        }
-        .brand-logo,
-        .institution-logo {
-          max-width: 100%;
-          height: auto;
-          object-fit: contain;
-        }
-        .brand-logo {
-          max-height: 70px;
-          margin-right: 12px;
-        }
-        .institution-logo {
-          max-height: 55px;
-        }
-
-        /* 2. Hero Section Styles (Arrière-plan dynamique) */
-        .hero-section {
-          position: relative;
-          padding: 120px 5%;
-          min-height: 500px;
-          display: flex;
-          align-items: center;
-          overflow: hidden;
-          flex: 1 0 auto;
-        }
-        .hero-carousel {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-        }
-        .carousel-img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          opacity: 0;
-          transition: opacity 1.8s ease-in-out;
-          pointer-events: none;
-          will-change: opacity;
-        }
-        .carousel-img.active {
-          opacity: 1;
-        }
-        /* Voile assombrissant et coloré pour la lisibilité */
-        .hero-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, rgba(15,23,42,0.5) 0%, rgba(255,255,255,0.42) 60%);
-          pointer-events: none;
-          z-index: 1;
-          backdrop-filter: saturate(1.2) brightness(1.05);
-        }
-        .hero-inner-content {
-          position: relative;
-          z-index: 2;
-          max-width: 780px;
-          width: 100%;
-        }
-        .badge-tag {
-          display: inline-block;
-          background: #dbeafe;
-          color: #1e40af;
-          padding: 6px 14px;
-          border-radius: 50px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          margin-bottom: 20px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .hero-inner-content h1 {
-          font-size: 2.8rem;
-          font-weight: 800;
-          line-height: 1.25;
-          color: #0f172a;
-          margin: 0 0 20px 0;
-        }
-        .highlight {
-          color: #0284c7; /* Bleu azur moderne */
-          position: relative;
-        }
-        .hero-description {
-          font-size: 1.15rem;
-          line-height: 1.6;
-          color: #475569;
-          margin-bottom: 35px;
-        }
-        .action-buttons {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 30px;
-          flex-wrap: wrap;
-        }
-        .btn {
-          min-width: 180px;
-          text-align: center;
-        }
-        .btn {
-          padding: 14px 28px;
-          font-size: 1rem;
-          font-weight: 600;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        .btn-primary {
-          background: #0f172a;
-          color: #ffffff;
-          border: none;
-          box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.3);
-        }
-        .btn-primary:hover {
-          background: #1e293b;
-          transform: translateY(-1px);
-        }
-        .btn-secondary {
-          background: #ffffff;
-          color: #334155;
-          border: 1px solid #cbd5e1;
-        }
-        .btn-secondary:hover {
-          background: #f1f5f9;
-          border-color: #94a3b8;
-        }
-        .social-proof {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .star-icon {
-          color: #eab308; /* Jaune or star */
-          font-size: 1.1rem;
-          letter-spacing: 2px;
-        }
-        .social-proof p {
-          margin: 0;
-          font-size: 0.95rem;
-          color: #64748b;
-        }
-
-        /* 3. Footer Styles */
-        .site-footer {
-          background: #091322; /* Bleu nuit profond et premium */
-          color: #f1f5f9;
-          margin-top: 80px;
-          width: 100%;
-          margin-left: 0;
-          margin-right: 0;
-          flex-shrink: 0;
-        }
-        /* Ruban tricolore officiel étendu sur 100% de largeur */
-        .benin-flag-ribbon {
-          height: 5px;
-          width: 100%;
-          background: linear-gradient(to right, #008751 33.33%, #ffeb3b 66.66%, #e81123 100%);
-        }
-        .footer-content {
-          padding: 60px 5% 40px;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-        .footer-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 40px;
-          align-items: start;
-        }
-        .footer-column h3 {
-          font-size: 1rem;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          color: #ffffff;
-          margin: 0 0 18px 0;
-          font-weight: 800;
-        }
-        .footer-column ul {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-        .footer-column ul li {
-          margin-bottom: 12px;
-        }
-        .footer-column ul li a {
-          color: #cbd5e1;
-          text-decoration: none;
-          font-size: 0.95rem;
-          transition: color 0.2s ease;
-        }
-        .footer-column ul li a:hover {
-          color: #ffffff;
-        }
-        .contact-list li {
-          color: #cbd5e1;
-          font-size: 0.95rem;
-          line-height: 1.4;
-        }
-        .footer-bottom-bar {
-          text-align: center;
-          padding: 24px 5%;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          font-size: 0.95rem;
-          color: #94a3b8;
-          background: #060d17;
-        }
-
-        .footer-bottom-inner {
-          max-width: 1200px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 0;
-        }
-        .social-icons { display:flex; gap:14px; }
-        .social-icon {
-          width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center;
-          background:#ffffff; color:#091322; border-radius:8px;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        }
-        .copy-line { color:#94a3b8; font-size:0.95rem; }
-
-        /* Bouton 'Se connecter' — global styles (cadre, Montserrat, hover) */
-        .hero-login-btn {
-          position: absolute;
-          top: 12px;
-          right: 5%;
-          z-index: 1200;
-          padding: 10px 18px;
-          font-size: 0.98rem;
-          font-weight: 700;
-          border-radius: 8px;
-          background: rgba(255,255,255,0.95);
-          color: #0f172a;
-          border: 2px solid rgba(15,23,42,0.95);
-          font-family: 'Montserrat', sans-serif;
-          text-decoration: none;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 6px 12px rgba(15,23,42,0.12);
-          transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease;
-          cursor: pointer;
-        }
-        .hero-login-btn:hover {
-          transform: translateY(-3px);
-          background: #0f172a;
-          color: #ffffff;
-          border-color: #0f172a;
-        }
-
-        /* Responsive basique pour mobiles */
-        @media (max-width: 1024px) {
-          .footer-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 28px; }
-        }
-        @media (max-width: 768px) {
-          .site-header { 
-            padding: 15px 4%; 
-          }
-          .brand-logo { 
-            height: 40px;
-          }
-          .institution-logo { 
-            height: 45px; 
-          }
-          .hero-section { 
-            padding: 60px 4%; 
-          }
-          .hero-inner-content h1 { 
-            font-size: 2rem; 
-          }
-          .hero-overlay { 
-            background: rgba(255, 255, 255, 0.92); 
-          }
-          .footer-grid { grid-template-columns: 1fr; }
-          .social-icon { width:40px; height:40px; }
-          /* Mobile overrides pour le bouton de connexion */
-          .hero-login-btn { right: 4%; top: 10px; padding: 8px 14px; font-size: 0.92rem; }
-          .hero-login-btn:hover { transform: translateY(-3px); background: #0f172a; color: #fff; border-color: #0f172a; }
+        .page-container { font-family: 'Montserrat', sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        .hero-section { position: relative; padding: 120px 5%; min-height: 500px; display: flex; align-items: center; overflow: hidden; flex: 1 0 auto; }
+        .hero-carousel { position: absolute; inset: 0; z-index: 0; }
+        .carousel-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.8s ease-in-out; pointer-events: none; will-change: opacity; }
+        .carousel-img.active { opacity: 1; }
+        .hero-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,23,42,0.5) 0%, rgba(255,255,255,0.42) 60%); pointer-events: none; z-index: 1; backdrop-filter: saturate(1.2) brightness(1.05); }
+        .hero-inner-content { position: relative; z-index: 10; max-width: 780px; width: 100%; }
+        .badge-tag { display: inline-block; background: #dbeafe; color: #1e40af; padding: 6px 14px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hero-inner-content h1 { font-size: 2.8rem; font-weight: 800; line-height: 1.25; color: #0f172a; margin: 0 0 20px 0; }
+        .highlight { color: #0284c7; position: relative; }
+        .hero-description { font-size: 1.15rem; line-height: 1.6; color: #475569; margin-bottom: 35px; }
+        .action-buttons { display: flex; gap: 16px; margin-bottom: 30px; flex-wrap: wrap; }
+        .btn { min-width: 180px; text-align: center; padding: 14px 28px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; border: none; }
+        .btn-primary { background: #0f172a; color: #ffffff; box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.3); }
+        .btn-primary:hover { background: #1e293b; transform: translateY(-1px); }
+        .btn-secondary { background: #ffffff; color: #334155; border: 1px solid #cbd5e1 !important; }
+        .btn-secondary:hover { background: #f1f5f9; border-color: #94a3b8 !important; }
+        .social-proof { display: flex; align-items: center; gap: 10px; }
+        .star-icon { color: #eab308; font-size: 1.1rem; letter-spacing: 2px; }
+        .social-proof p { margin: 0; font-size: 0.95rem; color: #64748b; }
+        .site-footer { background: #091322; color: #f1f5f9; margin-top: 80px; width: 100%; margin-left: 0; margin-right: 0; flex-shrink: 0; }
+        .benin-flag-ribbon { height: 5px; width: 100%; background: linear-gradient(to right, #008751 33.33%, #ffeb3b 66.66%, #e81123 100%); }
+        .hero-login-btn { position: absolute; top: 12px; right: 5%; z-index: 1200; padding: 10px 18px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; background: rgba(255,255,255,0.95); color: #0f172a; border: 2px solid rgba(15,23,42,0.95); font-family: 'Montserrat', sans-serif; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 12px rgba(15,23,42,0.12); transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease; cursor: pointer; }
+        .hero-login-btn:hover { transform: translateY(-3px); background: #0f172a; color: #ffffff; border-color: #0f172a; }
+        @media (max-width: 768px) { 
+          .hero-inner-content h1 { font-size: 2rem; } 
+          .hero-overlay { background: rgba(255, 255, 255, 0.92); } 
+          .hero-login-btn { right: 4%; top: 10px; padding: 8px 12px; font-size: 0.85rem; } 
         }
       `}</style>
     </div>

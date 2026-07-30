@@ -38,7 +38,7 @@ export default function GestionCorpsMetiers() {
     e.preventDefault();
     const url = modeEdition
       ? "http://localhost/Code/backend/CRUD/Update_corpsmetier.php"
-      : "http://localhost/Code/CRUD/Create_corpsmetier.php";
+      : "http://localhost/Code/backend/CRUD/Create_corpsmetier.php";
 
     fetch(url, {
       method: "POST",

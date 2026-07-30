@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-// Importez vos composants existants ici
 import GestionComptesAgents from "./GestionComptesAgents";
 import GestionCorpsMetiers from "./GestionCorpsMetiers";
 import GestionCentresFormation from "./GestionCentresFormation";
@@ -14,19 +13,17 @@ export default function TableauDeBord({ userConnecte, onDeconnexion }) {
   const [stats, setStats] = useState(null);
   const [chargementStats, setChargementStats] = useState(true);
 
-  // Définition des onglets et des rôles autorisés à les voir
   const configurationMenu = [
     { id: "accueil", label: "Accueil Dashboard", icon: "🏠", roles: ["administratueur", "agent simple"] },
     { id: "profils", label: "Gérer profils", icon: "👥", roles: ["administratueur"] },
     { id: "metiers", label: "Corps de métiers", icon: "📐", roles: ["administratueur"] },
-    { id: "centres", label: "Centres ARCH", icon: "🏢", roles: ["administratueur"] },
+    { id: "centres", label: "Centres ARCH", icon: "", roles: ["administratueur"] },
     { id: "questions", label: "Banque de questions", icon: "❓", roles: ["administratueur"] },
     { id: "resultats", label: "Consulter résultats", icon: "📊", roles: ["administratueur", "agent simple"] },
     { id: "affectations", label: "Suivi affectations", icon: "📍", roles: ["administratueur", "agent simple"] },
     { id: "suppressions", label: "Historique suppressions", icon: "🔒", roles: ["administratueur"] },
   ];
 
-  // Filtrer le menu pour ne garder que ce que l'utilisateur a le droit de voir
   const menuVisible = configurationMenu.filter(item => 
     item.roles.includes(userConnecte?.role)
   );
@@ -56,9 +53,6 @@ export default function TableauDeBord({ userConnecte, onDeconnexion }) {
 
   return (
     <div className="dashboard-wrapper">
-      {/* ========================================================
-         1. BARRE LATÉRALE DE NAVIGATION (Filtrée par rôle)
-         ======================================================== */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand-box">
           <div className="brand-badge">ARCH</div>
@@ -69,7 +63,6 @@ export default function TableauDeBord({ userConnecte, onDeconnexion }) {
           <div className="avatar-circle">👤</div>
           <div className="user-info-text">
             <h4>{userConnecte?.nom || "Nom Opérateur"}</h4>
-            {/* Affichage dynamique du rôle avec une couleur différente */}
             <span className={`user-role-tag ${userConnecte?.role === 'administratueur' ? 'role-admin' : 'role-agent'}`}>
               {userConnecte?.role === 'administratueur' ? 'Administrateur' : 'Agent Simple'}
             </span>
@@ -89,18 +82,18 @@ export default function TableauDeBord({ userConnecte, onDeconnexion }) {
         </nav>
 
         <div className="sidebar-footer-anchors">
-          <button className={`btn-settings-anchor ${ongletActif === "parametres" ? "active" : ""}`} onClick={() => setOngletActif("parametres")}>
-            <span>⚙️</span> Paramètres avancés
-          </button>
+          {/* ✅ CORRECTION : Paramètres uniquement pour les administrateurs */}
+          {userConnecte?.role === 'administratueur' && (
+            <button className={`btn-settings-anchor ${ongletActif === "parametres" ? "active" : ""}`} onClick={() => setOngletActif("parametres")}>
+              <span>⚙️</span> Paramètres avancés
+            </button>
+          )}
           <button className="btn-sidebar-logout" onClick={onDeconnexion}>
             🚪 Fermer la session
           </button>
         </div>
       </aside>
 
-      {/* ========================================================
-         2. ZONE DE CONTENU DYNAMIQUE
-         ======================================================== */}
       <main className="dashboard-main-content">
         
         {ongletActif === "accueil" && (
@@ -119,8 +112,7 @@ export default function TableauDeBord({ userConnecte, onDeconnexion }) {
                     <div className="metric-box-header">
                       <span className="box-icon-style">👥</span>
                       <h4>Opérateurs Habilités</h4>
-                    </
-div>
+                    </div>
                     <h2>{stats?.compteurs?.totalAgents || 0}</h2>
                     <p className="card-sub-info">Comptes agents actifs</p>
                   </div>
@@ -144,7 +136,7 @@ div>
 
                 <div className="geo-stats-section-layout">
                   <div className="geo-table-card-wrapper">
-                    <h3>📊 Répartition des certifications par Département</h3>
+                    <h3> Répartition des certifications par Département</h3>
                     <table className="geo-statistics-table">
                       <thead>
                         <tr>
@@ -175,7 +167,6 @@ div>
           </div>
         )}
 
-        {/* Rendu conditionnel des autres onglets */}
         {ongletActif === "profils" && <GestionComptesAgents />}
         {ongletActif === "metiers" && <GestionCorpsMetiers />}
         {ongletActif === "centres" && <GestionCentresFormation />}
@@ -183,7 +174,24 @@ div>
         {ongletActif === "resultats" && <ConsulterResultats />}
         {ongletActif === "affectations" && <GestionAffectations />}
         {ongletActif === "suppressions" && <GestionHistoriqueSuppressions />}
-        {ongletActif === "parametres" && <GestionParametres />}
+        
+        {/* ✅ CORRECTION : Protection de l'accès aux paramètres */}
+        {ongletActif === "parametres" && (
+          userConnecte?.role === 'administratueur' ? (
+            <GestionParametres />
+          ) : (
+            <div className="access-denied-container">
+              <div className="access-denied-box">
+                <span className="denied-icon">🔒</span>
+                <h2>Accès Refusé</h2>
+                <p>Vous n'avez pas les privilèges nécessaires pour accéder à cette section.</p>
+                <button onClick={() => setOngletActif("accueil")} className="btn-return-home">
+                  Retour à l'accueil
+                </button>
+              </div>
+            </div>
+          )
+        )}
 
       </main>
 
@@ -232,6 +240,47 @@ div>
         .success-cell-style { color: #16a34a; }
         .success-cell-style span { font-size: 0.8rem; color: #94a3b8; font-weight: 500; }
         .stats-loader-info { padding: 50px; text-align: center; color: #64748b; font-weight: 500; }
+        
+        /* Styles pour le message d'accès refusé */
+        .access-denied-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          width: 100%;
+        }
+        .access-denied-box {
+          background: #ffffff;
+          border: 1px solid #fca5a5;
+          border-radius: 12px;
+          padding: 40px;
+          text-align: center;
+          max-width: 400px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .denied-icon {
+          font-size: 3rem;
+          display: block;
+          margin-bottom: 16px;
+        }
+        .access-denied-box h2 {
+          color: #991b1b;
+          margin: 0 0 12px 0;
+          font-size: 1.5rem;
+        }
+        .access-denied-box p {
+          color: #475569;
+          margin-bottom: 24px;
+        }
+        .btn-return-home {
+          background: #1e3a8a;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+        }
       `}</style>
     </div>
   );
