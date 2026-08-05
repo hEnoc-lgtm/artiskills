@@ -2,73 +2,87 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
-// Sécurité : Bloquer si la méthode HTTP n'est pas un POST
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée."]);
-    exit;
-}
+// 1. Récupérer les données JSON envoyées par le frontend
+$data = json_decode(file_get_contents("php://input"), true);
 
-// Récupération de la charge utile JSON envoyée par le composant React
-$donnees = json_decode(file_get_contents("php://input"), true);
-$idTest = $donnees['idTest'] ?? null;
-$idQuestion = $donnees['idQuestion'] ?? null;
-$idReponse = $donnees['idReponse'] ?? null;         // Identifiant numérique de la réponse choisie
-$libelleReponse = $donnees['libelleReponse'] ?? null; // Libellé textuel de la réponse pour la colonne reponseDonnee
+$idTest = $data['idTest'] ?? null;
+$idQuestion = $data['idQuestion'] ?? null;
+$idReponse = $data['idReponse'] ?? null;
+$libelleReponse = $data['libelleReponse'] ?? null;
 
-// Validation des données obligatoires pour respecter l'intégrité de la table
+// Vérification des données obligatoires
 if (!$idTest || !$idQuestion || !$idReponse || !$libelleReponse) {
     http_response_code(422);
-    echo json_encode(["success" => false, "message" => "Données incomplètes pour le traitement de la réponse."]);
+    echo json_encode([
+        "success" => false, 
+        "message" => "Données manquantes pour l'enregistrement de la réponse."
+    ]);
     exit;
 }
 
 try {
-    // 1. VÉRIFICATION : On vérifie si la réponse choisie par l'artisan est correcte
-    // Le nom de la colonne dépend de votre table 'reponse' (ex: estCorrecte, statut, ou valeur)
-    // Nous récupérons un booléen/tinyint (1 si vrai, 0 si faux)
-    $stmtCheck = $pdo->prepare("SELECT estCorrecte FROM reponse WHERE idReponse = :idReponse");
-    $stmtCheck->execute(['idReponse' => $idReponse]);
-    $isCorrect = (int) $stmtCheck->fetchColumn(); 
+    // 2. Vérifier que le test est toujours en cours (sécurité)
+    $stmtTest = $pdo->prepare("SELECT statutTest FROM test WHERE idTest = :idTest");
+    $stmtTest->execute(['idTest' => $idTest]);
+    $statutTest = $stmtTest->fetchColumn();
 
-    // 2. MISE À JOUR : Enregistrement et verrouillage direct dans la table question_test
-    // La condition 'estVerouillee = 0' empêche un artisan de re-soumettre une réponse déjà validée
+    if ($statutTest !== 'en_cours') {
+        http_response_code(403);
+        echo json_encode([
+            "success" => false, 
+            "message" => "Ce test n'est plus en cours. Impossible de sauvegarder une réponse."
+        ]);
+        exit;
+    }
+
+    // 3. Vérifier si la réponse choisie est la bonne
+    $stmtCheckReponse = $pdo->prepare("
+        SELECT estCorrecte 
+        FROM reponse 
+        WHERE idReponse = :idReponse AND idQuestion = :idQuestion
+    ");
+    $stmtCheckReponse->execute([
+        'idReponse' => $idReponse,
+        'idQuestion' => $idQuestion
+    ]);
+    $estCorrecte = $stmtCheckReponse->fetchColumn();
+    
+    // estCorrecte vaut 1 si c'est la bonne réponse, 0 sinon
+    $estCorrecteInt = $estCorrecte ? 1 : 0;
+
+    // 4. Mettre à jour la table question_test
     $stmtUpdate = $pdo->prepare("
         UPDATE question_test 
-        SET reponseDonnee = :reponseDonnee,
-            estVerouillee = 1,
-            estcorrecte = :estcorrecte
-        WHERE idTest = :idTest 
-        AND idQuestion = :idQuestion 
-        AND estVerouillee = 0
+        SET reponseDonnee = :libelleReponse, 
+            estVerouillee = 1, 
+            estcorrecte = :estCorrecte
+        WHERE idTest = :idTest AND idQuestion = :idQuestion
     ");
     
     $stmtUpdate->execute([
-        'reponseDonnee' => $libelleReponse, // Remplit votre colonne varchar(255)
-        'estcorrecte'   => $isCorrect,      // Remplit votre colonne tinyint(1)
-        'idTest'        => $idTest,
-        'idQuestion'    => $idQuestion
+        'libelleReponse' => $libelleReponse,
+        'estCorrecte' => $estCorrecteInt,
+        'idTest' => $idTest,
+        'idQuestion' => $idQuestion
     ]);
 
-    // On vérifie si une ligne a bien été modifiée par la requête
+    // 5. Vérifier si la mise à jour a fonctionné
     if ($stmtUpdate->rowCount() > 0) {
         echo json_encode([
             "success" => true, 
-            "message" => "Réponse enregistrée et validée définitivement en base de données."
+            "message" => "Réponse enregistrée et verrouillée avec succès.",
+            "estCorrecte" => $estCorrecteInt
         ]);
     } else {
-        // Cas où la question était déjà verrouillée en amont pour éviter les tentatives de fraude
-        http_response_code(409);
+        http_response_code(404);
         echo json_encode([
             "success" => false, 
-            "message" => "Cette question a déjà fait l'objet d'une validation verrouillée ou n'existe pas."
+            "message" => "Aucune question correspondante trouvée dans ce test."
         ]);
     }
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode([
-        "success" => false, 
-        "message" => "Erreur critique de mise à jour de la table question_test : " . $e->getMessage()
-    ]);
+    echo json_encode(["success" => false, "message" => "Erreur PDO : " . $e->getMessage()]);
 }
+?>

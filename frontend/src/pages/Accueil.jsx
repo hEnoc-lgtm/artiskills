@@ -30,7 +30,7 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
           className="btn hero-login-btn"
           title="Accès réservé au personnel de l'ANPS"
         >
-          👤 Espace Agent / Admin
+          Se connecter
         </button>
 
         <div className="hero-carousel">

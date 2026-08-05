@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
-// ✅ PLUS BESOIN de code_corpsmetier en prop - le PHP le récupère en base
 export default function QuestionnaireTest({ idTest, onTestTermine }) {
   const [questions, setQuestions] = useState([]);
   const [indexCourant, setIndexCourant] = useState(0);
@@ -8,12 +7,18 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
   const [tempsRestant, setTempsRestant] = useState(null); 
   const [chargement, setChargement] = useState(true);
   const [erreurApi, setErreurApi] = useState(null);
+  
+  // Utilisation d'une ref pour éviter le double appel en mode développement React
+  const aDejaCharge = useRef(false);
 
   useEffect(() => {
+    if (aDejaCharge.current || questions.length > 0) {
+      return;
+    }
+
     console.log("🔍 DÉBUT CHARGEMENT TEST");
     console.log("🔹 idTest reçu :", idTest);
 
-    // ✅ On vérifie SEULEMENT idTest
     if (!idTest) {
       console.error("❌ ERREUR : idTest est manquant !");
       setErreurApi("Données de session manquantes. Veuillez recommencer le test.");
@@ -21,14 +26,14 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
       return;
     }
 
-    // ✅ URL simplifiée - juste l'ID du test
+    aDejaCharge.current = true;
     const url = `http://localhost/Code/backend/api/test/chargerQuestions.php?idTest=${idTest}`;
     console.log("🌐 URL appelée :", url);
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        console.log(" RÉPONSE DU SERVEUR :", data);
+        console.log("📦 RÉPONSE DU SERVEUR :", data);
         if (data.success) {
           setQuestions(data.questions);
           setTempsRestant(data.tempsRestant);
@@ -47,12 +52,29 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
         setErreurApi("Impossible de contacter le serveur backend. Vérifiez que XAMPP est lancé.");
         setChargement(false);
       });
-  }, [idTest]); // ✅ Dépendance nettoyée - juste idTest
+  }, [idTest]);
+
+  // Fonction pour finaliser le test côté serveur
+  const terminerTest = useCallback(() => {
+    fetch(`http://localhost/Code/backend/api/test/terminer_test.php?idTest=${idTest}`, {
+      method: "POST",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          console.log("✅ Test terminé avec succès. Durée :", data.duree);
+        }
+      })
+      .catch((err) => console.error("Erreur lors de la finalisation du test", err))
+      .finally(() => {
+        if (onTestTermine) onTestTermine();
+      });
+  }, [idTest, onTestTermine]);
 
   const handleFinChronoAutomatically = useCallback(() => {
     alert("Temps écoulé ! Votre test est clôturé.");
-    if (onTestTermine) onTestTermine();
-  }, [onTestTermine]);
+    terminerTest();
+  }, [terminerTest]);
 
   useEffect(() => {
     if (chargement || tempsRestant === null || questions.length === 0) return;
@@ -81,7 +103,7 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
       return;
     }
 
-    fetch("http://localhost/Code/backend/api/test/sauvegarder_reponse.php", {
+    fetch("http://localhost/Code/backend/api/test/sauvegardereponse.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -107,11 +129,12 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
   };
 
   const passerAQuestionSuivante = () => {
-    if (indexCourant < 9 && indexCourant < questions.length - 1) {
+    if (indexCourant < questions.length - 1) {
       setIndexCourant(indexCourant + 1);
       setReponseSelectionnee(null);
     } else {
-      if (onTestTermine) onTestTermine();
+      // C'est la dernière question, on termine le test proprement
+      terminerTest();
     }
   };
 

@@ -1,35 +1,53 @@
 <?php
-require_once __DIR__ . '/../config/headers.php';
-require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../../config/headers.php';
+require_once __DIR__ . '/../../config/database.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    http_response_code(405);
-    exit;
-}
+// Récupérer l'idTest si fourni (pour la vue artisan)
+$idTest = $_GET['idTest'] ?? null;
 
 try {
-    // Requête globale avec jointures pour afficher des données lisibles à l'administrateur
-    $stmt = $pdo->query("
+    // Requête avec JOIN pour récupérer toutes les infos nécessaires en une seule fois
+    $sql = "
         SELECT 
-            aff.idTest,
-            art.npi,
-            art.nom,
-            art.prenom,
-            t.note as note_test,
-            c.nomCentre as centre_attribue,
-            aff.distanceCalculee,
-            aff.dateAffectation
-        FROM affectation aff
-        JOIN test t ON aff.idTest = t.idTest
-        JOIN artisan art ON t.id_artisan = art.id_artisan
-        JOIN centre_formation c ON aff.idCentre = c.idCentre
-        ORDER BY aff.dateAffectation DESC
-    ");
-    
-    $affectations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode(["success" => true, "data" => $affectations]);
+            t.idTest,
+            ar.npi,
+            ar.nom,
+            ar.prenom,
+            t.score AS note_test,
+            c.nomCentre AS centre_attribue,
+            a.distanceCalculee,
+            a.dateAffectation,
+            a.statutPlace
+        FROM affectation a
+        JOIN test t ON a.idTest = t.idTest
+        JOIN artisan ar ON t.id_artisan = ar.id_artisan
+        LEFT JOIN centre_formation c ON a.idCentre = c.idCentre
+    ";
+
+    $params = [];
+
+    // Si on demande un test spécifique, on ajoute la condition WHERE
+    if ($idTest) {
+        $sql .= " WHERE t.idTest = :idTest";
+        $params[':idTest'] = $idTest;
+    }
+
+    $sql .= " ORDER BY a.dateAffectation DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode([
+        "success" => true,
+        "data" => $data
+    ]);
 
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur de lecture du registre : " . $e->getMessage()]);
+    echo json_encode([
+        "success" => false,
+        "message" => "Erreur de base de données : " . $e->getMessage()
+    ]);
 }
+?>

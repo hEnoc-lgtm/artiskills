@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
 
-// 1. On récupère seulement l'ID du test depuis l'URL
+// 1. On récupère SEULEMENT l'ID du test depuis l'URL
 $idTest = $_GET['idTest'] ?? null;
 
 if (!$idTest) {
@@ -12,7 +12,7 @@ if (!$idTest) {
 }
 
 try {
-    // 2. RÉCUPÉRATION DU MÉTIER DEPUIS LA TABLE TEST (C'est la clé du succès !)
+    // 2. RÉCUPÉRATION DU MÉTIER DEPUIS LA TABLE TEST
     $stmtMetier = $pdo->prepare("SELECT code_corpsmetier FROM test WHERE idTest = :idTest");
     $stmtMetier->execute(['idTest' => $idTest]);
     $code_corpsmetier = $stmtMetier->fetchColumn();
@@ -26,25 +26,38 @@ try {
         exit;
     }
 
+    
     // 3. GESTION DU CHRONOMÈTRE
-    $stmtTime = $pdo->prepare("SELECT date FROM test WHERE idTest = :idTest");
+    $stmtTime = $pdo->prepare("
+        SELECT COALESCE(dateDebutTest, date, heureDebut) AS dateDebut
+        FROM test
+        WHERE idTest = :idTest
+    ");
     $stmtTime->execute(['idTest' => $idTest]);
     $dateDebut = $stmtTime->fetchColumn();
-
+    
     $maintenant = time();
     $dureeMaxTest = 600; // 10 minutes
-
-    if (!$dateDebut) {
-        $stmtStart = $pdo->prepare("UPDATE test SET date = NOW() WHERE idTest = :idTest");
+    
+    if (!$dateDebut || $dateDebut === '0000-00-00' || $dateDebut === '0000-00-00 00:00:00') {
+        // Premier lancement du test
+        $stmtStart = $pdo->prepare("
+            UPDATE test
+            SET dateDebutTest = NOW(),
+                date = NOW(),
+                heureDebut = CURTIME()
+            WHERE idTest = :idTest
+        ");
         $stmtStart->execute(['idTest' => $idTest]);
-        $tempsRestantCalcule = $dureeMaxTest; 
+        $tempsRestantCalcule = $dureeMaxTest;
     } else {
+        // Test déjà commencé
         $timestampDebut = strtotime($dateDebut);
         $tempsEcoule = $maintenant - $timestampDebut;
         $tempsRestantCalcule = max(0, $dureeMaxTest - $tempsEcoule);
-    }
+    };
 
-    // 4. NETTOYAGE ANTI-TRICHE
+    // 4. NETTOYAGE ANTI-TRICHE (questions non verrouillées)
     $stmtClean = $pdo->prepare("DELETE FROM question_test WHERE idTest = :idTest AND estVerouillee = 0");
     $stmtClean->execute(['idTest' => $idTest]);
 
@@ -73,11 +86,13 @@ try {
         $ordreActuel = $questionsVerrouillees + 1;
         foreach ($nouvellesQuestions as $q) {
             $stmtInsert = $pdo->prepare("
-                INSERT INTO question_test (ordre, idTest, idQuestion, estVerouillee, estcorrecte) 
-                VALUES (:ordre, :idTest, :idQuestion, 0, 0)
+                INSERT INTO question_test (ordre, idTest, idQuestion, estVerouillee, estcorrecte, reponseDonnee) 
+                VALUES (:ordre, :idTest, :idQuestion, 0, 0, NULL)
             ");
             $stmtInsert->execute([
-                'ordre' => $ordreActuel, 'idTest' => $idTest, 'idQuestion' => $q['idQuestion']
+                'ordre' => $ordreActuel, 
+                'idTest' => $idTest, 
+                'idQuestion' => $q['idQuestion']
             ]);
             $ordreActuel++;
         }
@@ -94,8 +109,13 @@ try {
     $stmtFinal->execute(['idTest' => $idTest]);
     $listeQuestions = $stmtFinal->fetchAll(PDO::FETCH_ASSOC);
 
+    // 8. CHARGEMENT DES RÉPONSES (Options)
     foreach ($listeQuestions as &$q) {
-        $stmtRep = $pdo->prepare("SELECT idReponse, enonce FROM reponse WHERE idQuestion = :idQ");
+        $stmtRep = $pdo->prepare("
+            SELECT idReponse, libelleReponse AS enonce 
+            FROM reponse 
+            WHERE idQuestion = :idQ
+        ");
         $stmtRep->execute(['idQ' => $q['idQuestion']]);
         $q['options'] = $stmtRep->fetchAll(PDO::FETCH_ASSOC);
     }

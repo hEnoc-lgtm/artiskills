@@ -11,10 +11,12 @@ import QuestionnaireTest from "./pages/Questionnairetest";
 import ResultatAffectation from "./pages/GestionAffectations"; 
 import TableauDeBord from "./pages/TableauDeBord"; 
 import ConnexionAgentAdmin from "./pages/Connexionagentadmin";
+import ConfirmationTest from "./pages/ConfirmationTest";
 
 export default function App() {
   const [etape, setEtape] = useState("accueil");
   
+  // État pour conserver les informations de l'artisan tout au long du parcours
   const [session, setSession] = useState({ 
     idArtisan: null, 
     idTest: null, 
@@ -29,15 +31,24 @@ export default function App() {
       <div className="app-shell">
         {etape !== "dashboard" && (
           <header className="site-header">
-            <div className="logo-left"><img src="/images/logo-artiskills.png" alt="ArtiSkills" className="brand-logo" /></div>
+            <div className="logo-left">
+              <img src="/images/logo-artiskills.png" alt="ArtiSkills" className="brand-logo" />
+            </div>
             <div className="header-actions">
-              <div className="logo-right"><img src="/images/logo-anps.png" alt="ANPS Bénin" className="institution-logo" /></div>
+              <div className="logo-right">
+                <img src="/images/logo-anps.png" alt="ANPS Bénin" className="institution-logo" />
+            </div>
             </div>
           </header>
         )}
 
         <main className="main-content">
-          {etape === "accueil" && <Accueil onNavigateToRegister={() => setEtape("inscription")} onNavigateToAdmin={() => setEtape("admin_login")} />}
+          {etape === "accueil" && (
+            <Accueil 
+              onNavigateToRegister={() => setEtape("inscription")} 
+              onNavigateToAdmin={() => setEtape("admin_login")} 
+            />
+          )}
 
           {etape === "inscription" && (
             <InscriptionArtisan 
@@ -50,32 +61,55 @@ export default function App() {
           )}
 
           {etape === "confirmation" && (
-            <ConfirmationParcours infoParcours={session} onAccepteTest={() => setEtape("pretest")} onRefuseTest={handleRetourAccueil} />
+            <ConfirmationParcours 
+              infoParcours={session} 
+              onAccepteTest={() => setEtape("pretest")} 
+              onRefuseTest={handleRetourAccueil} 
+            />
           )}
 
           {etape === "pretest" && (
             <Pretest 
               idArtisan={session.idArtisan} 
               onPretestSuccess={() => {
-                // Le pretest a sauvegardé le métier en base via save.php
+                // Le pretest a sauvegardé le code_corpsmetier en base via save.php
                 setEtape("instructions");
               }} 
             />
           )}
 
-          {etape === "instructions" && <InstructionTest onStartTest={() => setEtape("test")} />}
+          {etape === "instructions" && (
+            <InstructionTest onStartTest={() => setEtape("test")} />
+          )}
 
           {etape === "test" && (
-            // ✅ On a retiré la prop "code_corpsmetier" car le PHP la lit directement en base
+            // ✅ Le PHP récupère le code_corpsmetier tout seul via l'idTest
             <QuestionnaireTest 
               idTest={session.idTest} 
               onTestTermine={() => setEtape("resultats")} 
             />
           )}
 
-          {etape === "resultats" && <ResultatAffectation idTest={session.idTest} idArtisan={session.idArtisan} onRetourAccueil={handleRetourAccueil} />}
-          {etape === "admin_login" && <ConnexionAgentAdmin onLoginSuccess={(data) => { setAdminConnecte(data); setEtape("dashboard"); }} onRetour={handleRetourAccueil} />}
-          {etape === "dashboard" && <TableauDeBord userConnecte={adminConnecte} onDeconnexion={handleRetourAccueil} />}
+          {etape === "resultats" && (
+            <ConfirmationTest onRetourAccueil={handleRetourAccueil} />
+          )}
+          
+          {etape === "admin_login" && (
+            <ConnexionAgentAdmin 
+              onLoginSuccess={(data) => { 
+                setAdminConnecte(data); 
+                setEtape("dashboard"); 
+              }} 
+              onRetour={handleRetourAccueil} 
+            />
+          )}
+
+          {etape === "dashboard" && (
+            <TableauDeBord 
+              userConnecte={adminConnecte} 
+              onDeconnexion={handleRetourAccueil} 
+            />
+          )}
         </main>
       </div>
 
