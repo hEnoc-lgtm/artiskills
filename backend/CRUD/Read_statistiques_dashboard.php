@@ -15,11 +15,11 @@ try {
     ");
     $totalTests = (int)$stmt2->fetchColumn();
 
-    // 3. Nombre de tests validés (score >= 10/20)
+    // 3. Nombre de tests validés (score >= 5/10)
     $stmt3 = $pdo->query("
         SELECT COUNT(*)
         FROM test
-        WHERE score >= 10
+        WHERE score >= 5
     ");
     $testsValides = (int)$stmt3->fetchColumn();
 
@@ -31,7 +31,7 @@ try {
         SELECT
             IFNULL(d.nom_departement, 'Non localisé') AS departement,
             COUNT(t.idTest) AS total_evaluations,
-            SUM(CASE WHEN t.score >= 10 THEN 1 ELSE 0 END) AS total_valides
+            SUM(CASE WHEN t.score >= 5 THEN 1 ELSE 0 END) AS total_valides
         FROM test t
         JOIN artisan a ON t.id_artisan = a.id_artisan
         LEFT JOIN quartier_village qv ON a.id_quartier_residence = qv.id_quartier

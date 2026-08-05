@@ -19,7 +19,7 @@ try {
     ");
     $stmtScore->execute(['idTest' => $idTest]);
     $resultat = $stmtScore->fetch(PDO::FETCH_ASSOC);
-    $score = $resultat['nbCorrectes'] * 2; // Chaque question vaut 2 points (sur 20)
+    $score = $resultat['nbCorrectes']; // 1 point par bonne réponse (score sur 10)
 
     // 2. Mettre à jour l'heure de fin, le statut et le score
     $stmt = $pdo->prepare("

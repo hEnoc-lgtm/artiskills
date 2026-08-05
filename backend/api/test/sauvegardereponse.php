@@ -7,11 +7,10 @@ $data = json_decode(file_get_contents("php://input"), true);
 
 $idTest = $data['idTest'] ?? null;
 $idQuestion = $data['idQuestion'] ?? null;
-$idReponse = $data['idReponse'] ?? null;
-$libelleReponse = $data['libelleReponse'] ?? null;
+$reponse = $data['idReponse'] ?? null;       // int (unique) ou tableau (multiple)
+$libelle = $data['libelleReponse'] ?? null;  // string (unique) ou tableau (multiple)
 
-// Vérification des données obligatoires
-if (!$idTest || !$idQuestion || !$idReponse || !$libelleReponse) {
+if (!$idTest || !$idQuestion || !$reponse || !$libelle) {
     http_response_code(422);
     echo json_encode([
         "success" => false, 
@@ -24,9 +23,8 @@ try {
     // 2. Vérifier que le test est toujours en cours (sécurité)
     $stmtTest = $pdo->prepare("SELECT statutTest FROM test WHERE idTest = :idTest");
     $stmtTest->execute(['idTest' => $idTest]);
-    $statutTest = $stmtTest->fetchColumn();
 
-    if ($statutTest !== 'en_cours') {
+    if ($stmtTest->fetchColumn() !== 'en_cours') {
         http_response_code(403);
         echo json_encode([
             "success" => false, 
@@ -35,20 +33,40 @@ try {
         exit;
     }
 
-    // 3. Vérifier si la réponse choisie est la bonne
-    $stmtCheckReponse = $pdo->prepare("
-        SELECT estCorrecte 
-        FROM reponse 
-        WHERE idReponse = :idReponse AND idQuestion = :idQuestion
-    ");
-    $stmtCheckReponse->execute([
-        'idReponse' => $idReponse,
-        'idQuestion' => $idQuestion
-    ]);
-    $estCorrecte = $stmtCheckReponse->fetchColumn();
-    
-    // estCorrecte vaut 1 si c'est la bonne réponse, 0 sinon
-    $estCorrecteInt = $estCorrecte ? 1 : 0;
+    $estMultiple = is_array($reponse);
+
+    if ($estMultiple) {
+        // 3a. QUESTION MULTIPLE : on compare l'ensemble coché avec l'ensemble des bonnes réponses
+        $stmtBonnes = $pdo->prepare("
+            SELECT idReponse FROM reponse 
+            WHERE idQuestion = :idQuestion AND estCorrecte = 1
+        ");
+        $stmtBonnes->execute(['idQuestion' => $idQuestion]);
+        $bonnesReponses = $stmtBonnes->fetchAll(PDO::FETCH_COLUMN);
+
+        $selection = array_map('intval', $reponse);
+        $attendu = array_map('intval', $bonnesReponses);
+        sort($selection);
+        sort($attendu);
+
+        // 1 point uniquement si TOUTES les bonnes réponses sont cochées (et rien d'autre)
+        $estCorrecteInt = ($selection === $attendu) ? 1 : 0;
+        $libelleFinal = implode(", ", $libelle);
+
+    } else {
+        // 3b. QUESTION UNIQUE : logique classique
+        $stmtCheckReponse = $pdo->prepare("
+            SELECT estCorrecte 
+            FROM reponse 
+            WHERE idReponse = :idReponse AND idQuestion = :idQuestion
+        ");
+        $stmtCheckReponse->execute([
+            'idReponse' => $reponse,
+            'idQuestion' => $idQuestion
+        ]);
+        $estCorrecteInt = $stmtCheckReponse->fetchColumn() ? 1 : 0;
+        $libelleFinal = $libelle;
+    }
 
     // 4. Mettre à jour la table question_test
     $stmtUpdate = $pdo->prepare("
@@ -60,7 +78,7 @@ try {
     ");
     
     $stmtUpdate->execute([
-        'libelleReponse' => $libelleReponse,
+        'libelleReponse' => $libelleFinal,
         'estCorrecte' => $estCorrecteInt,
         'idTest' => $idTest,
         'idQuestion' => $idQuestion

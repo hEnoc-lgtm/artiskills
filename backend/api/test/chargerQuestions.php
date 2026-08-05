@@ -26,36 +26,27 @@ try {
         exit;
     }
 
-    
-    // 3. GESTION DU CHRONOMÈTRE
-    $stmtTime = $pdo->prepare("
-        SELECT COALESCE(dateDebutTest, date, heureDebut) AS dateDebut
-        FROM test
-        WHERE idTest = :idTest
-    ");
+    // 3. GESTION DU CHRONOMÈTRE (Utilisation de date + heureDebut)
+    $stmtTime = $pdo->prepare("SELECT date, heureDebut FROM test WHERE idTest = :idTest");
     $stmtTime->execute(['idTest' => $idTest]);
-    $dateDebut = $stmtTime->fetchColumn();
-    
+    $testInfo = $stmtTime->fetch(PDO::FETCH_ASSOC);
+    $dateDebut = $testInfo['date'];
+    $heureDebut = $testInfo['heureDebut'];
+
     $maintenant = time();
     $dureeMaxTest = 600; // 10 minutes
-    
-    if (!$dateDebut || $dateDebut === '0000-00-00' || $dateDebut === '0000-00-00 00:00:00') {
-        // Premier lancement du test
-        $stmtStart = $pdo->prepare("
-            UPDATE test
-            SET dateDebutTest = NOW(),
-                date = NOW(),
-                heureDebut = CURTIME()
-            WHERE idTest = :idTest
-        ");
+
+    if (!$dateDebut || !$heureDebut || $dateDebut === '0000-00-00') {
+        // Premier lancement du test : on enregistre la date et l'heure exactes
+        $stmtStart = $pdo->prepare("UPDATE test SET date = CURDATE(), heureDebut = CURTIME() WHERE idTest = :idTest");
         $stmtStart->execute(['idTest' => $idTest]);
-        $tempsRestantCalcule = $dureeMaxTest;
+        $tempsRestantCalcule = $dureeMaxTest; 
     } else {
-        // Test déjà commencé
-        $timestampDebut = strtotime($dateDebut);
+        // Test déjà commencé : on combine date et heure pour un calcul précis
+        $timestampDebut = strtotime($dateDebut . ' ' . $heureDebut);
         $tempsEcoule = $maintenant - $timestampDebut;
         $tempsRestantCalcule = max(0, $dureeMaxTest - $tempsEcoule);
-    };
+    }
 
     // 4. NETTOYAGE ANTI-TRICHE (questions non verrouillées)
     $stmtClean = $pdo->prepare("DELETE FROM question_test WHERE idTest = :idTest AND estVerouillee = 0");

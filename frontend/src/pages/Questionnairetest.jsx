@@ -3,12 +3,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 export default function QuestionnaireTest({ idTest, onTestTermine }) {
   const [questions, setQuestions] = useState([]);
   const [indexCourant, setIndexCourant] = useState(0);
-  const [reponseSelectionnee, setReponseSelectionnee] = useState(null);
+  const [selection, setSelection] = useState([]); // tableau de {id, libelle}
   const [tempsRestant, setTempsRestant] = useState(null); 
   const [chargement, setChargement] = useState(true);
   const [erreurApi, setErreurApi] = useState(null);
   
-  // Utilisation d'une ref pour éviter le double appel en mode développement React
   const aDejaCharge = useRef(false);
 
   useEffect(() => {
@@ -96,29 +95,36 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
   };
 
   const handleSuivant = () => {
-    const qActuelle = questions[indexCourant];
+    const qCourante = questions[indexCourant];
 
-    if (qActuelle.estVerouillee === 1) {
+    if (qCourante.estVerouillee === 1) {
       passerAQuestionSuivante();
       return;
     }
 
+    const estMultiple = qCourante.typeQuestion === "QCM_multiple";
+
+    // Selon le type : tableau (multiple) ou valeur seule (unique)
+    const payload = {
+      idTest: idTest,
+      idQuestion: qCourante.idQuestion,
+      idReponse: estMultiple ? selection.map((r) => r.id) : selection[0].id,
+      libelleReponse: estMultiple ? selection.map((r) => r.libelle) : selection[0].libelle,
+    };
+
     fetch("http://localhost/Code/backend/api/test/sauvegardereponse.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        idTest: idTest,
-        idQuestion: qActuelle.idQuestion,
-        idReponse: reponseSelectionnee.id,
-        libelleReponse: reponseSelectionnee.libelle 
-      }),
+      body: JSON.stringify(payload),
     })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           const questionsMaj = [...questions];
           questionsMaj[indexCourant].estVerouillee = 1;
-          questionsMaj[indexCourant].reponseDonnee = reponseSelectionnee.libelle;
+          questionsMaj[indexCourant].reponseDonnee = Array.isArray(payload.libelleReponse)
+            ? payload.libelleReponse.join(", ")
+            : payload.libelleReponse;
           setQuestions(questionsMaj);
           passerAQuestionSuivante();
         } else {
@@ -131,7 +137,7 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
   const passerAQuestionSuivante = () => {
     if (indexCourant < questions.length - 1) {
       setIndexCourant(indexCourant + 1);
-      setReponseSelectionnee(null);
+      setSelection([]);
     } else {
       // C'est la dernière question, on termine le test proprement
       terminerTest();
@@ -152,6 +158,22 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
 
   const qActuelle = questions[indexCourant];
   const estVerrouillee = qActuelle.estVerouillee === 1;
+  const estMultiple = qActuelle.typeQuestion === "QCM_multiple";
+  const reponsesVerrouillees = estVerrouillee && qActuelle.reponseDonnee ? qActuelle.reponseDonnee.split(", ") : [];
+
+  // Clic sur une option : toggle si multiple, remplacement si unique
+  const gererClicOption = (opt) => {
+    if (estVerrouillee) return;
+    if (estMultiple) {
+      setSelection((prev) =>
+        prev.some((r) => r.id === opt.idReponse)
+          ? prev.filter((r) => r.id !== opt.idReponse)
+          : [...prev, { id: opt.idReponse, libelle: opt.enonce }]
+      );
+    } else {
+      setSelection([{ id: opt.idReponse, libelle: opt.enonce }]);
+    }
+  };
 
   return (
     <div className="test-wrapper">
@@ -164,17 +186,23 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
 
         <h3 className="question-text">{qActuelle.enonce}</h3>
 
+        {estMultiple && (
+          <p className="txt-multi-hint">☑️ Plusieurs réponses possibles — cochez toutes les bonnes réponses.</p>
+        )}
+
         <div className="options-stack">
           {qActuelle.options.map((opt) => {
-            const estSelectionnee = reponseSelectionnee?.id === opt.idReponse || qActuelle.reponseDonnee === opt.enonce;
+            const estSelectionnee = selection.some((r) => r.id === opt.idReponse) || reponsesVerrouillees.includes(opt.enonce);
             
             return (
               <div 
                 key={opt.idReponse} 
                 className={`option-card ${estSelectionnee ? "selected" : ""} ${estVerrouillee ? "grisee" : ""}`}
-                onClick={() => !estVerrouillee && setReponseSelectionnee({ id: opt.idReponse, libelle: opt.enonce })}
+                onClick={() => gererClicOption(opt)}
               >
-                <div className={`radio-circle ${estSelectionnee ? "checked" : ""}`} />
+                <div className={`radio-circle ${estMultiple ? "carre" : ""} ${estSelectionnee ? "checked" : ""}`}>
+                  {estMultiple && estSelectionnee ? "✓" : ""}
+                </div>
                 <span className="option-label">{opt.enonce}</span>
               </div>
             );
@@ -189,13 +217,13 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
           <button 
             className="btn-prev" 
             disabled={indexCourant === 0} 
-            onClick={() => { setIndexCourant(indexCourant - 1); setReponseSelectionnee(null); }}
+            onClick={() => { setIndexCourant(indexCourant - 1); setSelection([]); }}
           >
             Précédent
           </button>
           <button 
             className="btn-next" 
-            disabled={!reponseSelectionnee && !estVerrouillee} 
+            disabled={selection.length === 0 && !estVerrouillee} 
             onClick={handleSuivant}
           >
             {indexCourant === questions.length - 1 ? "Terminer le test" : "Valider et suivant"}
@@ -217,13 +245,15 @@ export default function QuestionnaireTest({ idTest, onTestTermine }) {
         .test-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 24px; }
         .brand-name { font-weight: 700; color: #0f172a; } 
         .test-timer { color: #991b1b; font-weight: 600; font-variant-numeric: tabular-nums; }
-        .question-text { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin-bottom: 28px; line-height: 1.4; text-align: left; }
+        .question-text { font-size: 1.2rem; font-weight: 600; color: #0f172a; margin-bottom: 20px; line-height: 1.4; text-align: left; }
+        .txt-multi-hint { color: #1d4ed8; font-size: 0.88rem; margin: 0 0 16px 0; text-align: left; font-weight: 600; }
         .options-stack { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
         .option-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid #cbd5e1; border-radius: 10px; cursor: pointer; transition: all 0.2s; background: #ffffff; text-align: left; user-select: none; }
         .option-card:hover:not(.grisee) { border-color: #94a3b8; background-color: #f8fafc; }
         .option-card.selected { border-color: #93c5fd; background: #eff6ff; }
         .option-card.grisee { background: #f1f5f9; color: #94a3b8; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.75; }
-        .radio-circle { width: 20px; height: 20px; border: 2px solid #cbd5e1; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; }
+        .radio-circle { width: 20px; height: 20px; border: 2px solid #cbd5e1; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; display: flex; justify-content: center; align-items: center; color: #ffffff; font-size: 13px; font-weight: 700; }
+        .radio-circle.carre { border-radius: 5px; }
         .radio-circle.checked { border-color: #2563eb; background: #2563eb; }
         .txt-lock-notice { color: #64748b; font-size: 0.85rem; font-style: italic; margin: 0 0 20px 0; text-align: left; }
         .button-actions { display: flex; gap: 16px; }

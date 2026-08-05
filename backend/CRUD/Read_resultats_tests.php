@@ -34,6 +34,7 @@ try {
 
     $resultats = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Détermination dynamique du statut de l'évaluation pour le tableau
     foreach ($resultats as &$r) {
         $note = $r['note_test'] !== null ? (int)$r['note_test'] : 0;
         $totalRepondu = (int)$r['questions_repondues'];
@@ -41,7 +42,7 @@ try {
 
         if ($r['date'] === null || $r['heureDebut'] === null) {
             $r['statut_test'] = "Non débuté";
-        } elseif ($totalRepondu === 10 || $note >= 10) {
+        } elseif ($totalRepondu === 10 || $note >= 5) {
             $r['statut_test'] = "Validé";
         } elseif ($tempsEcoule > 600) {
             $r['statut_test'] = "Expiré";
