@@ -96,9 +96,9 @@ try {
         WHERE qt.idTest = :idTest
         ORDER BY qt.ordre ASC
     ");
-    // 7. EXTRACTION FINALE POUR L'AFFICHAGE
+        // 7. EXTRACTION FINALE POUR L'AFFICHAGE
     $stmtFinal = $pdo->prepare("
-        SELECT qt.ordre, qt.idQuestion, q.enonce, qt.estVerouillee, qt.reponseDonnee
+        SELECT qt.ordre, qt.idQuestion, q.enonce, q.typeQuestion, qt.estVerouillee, qt.reponseDonnee
         FROM question_test qt
         JOIN question q ON qt.idQuestion = q.idQuestion
         WHERE qt.idTest = :idTest
