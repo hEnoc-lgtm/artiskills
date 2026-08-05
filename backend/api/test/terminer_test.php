@@ -1,33 +1,40 @@
 <?php
+require_once __DIR__ . '/../../config/headers.php';
+require_once __DIR__ . '/../../config/database.php';
+
+$idTest = $_GET['idTest'] ?? null;
+
+if (!$idTest) {
+    http_response_code(422);
+    echo json_encode(["success" => false, "message" => "ID de test manquant."]);
+    exit;
+}
+
 try {
-    // 1. Calcul de la note sur 20
+    // 1. Calculer le score en comptant les bonnes réponses
     $stmtScore = $pdo->prepare("
-        SELECT
-            COALESCE(SUM(CASE WHEN estcorrecte = 1 THEN 1 ELSE 0 END), 0) AS bonnes_reponses
-        FROM question_test
-        WHERE idTest = :idTest
+        SELECT COUNT(*) as nbCorrectes 
+        FROM question_test 
+        WHERE idTest = :idTest AND estcorrecte = 1
     ");
     $stmtScore->execute(['idTest' => $idTest]);
-    $bonnesReponses = (int) $stmtScore->fetchColumn();
+    $resultat = $stmtScore->fetch(PDO::FETCH_ASSOC);
+    $score = $resultat['nbCorrectes'] * 2; // Chaque question vaut 2 points (sur 20)
 
-    $note = (int) round($bonnesReponses * 2);
-    $note = max(0, min(20, $note));
-
-    // 2. Mise à jour finale du test
+    // 2. Mettre à jour l'heure de fin, le statut et le score
     $stmt = $pdo->prepare("
-        UPDATE test
-        SET heureFin = CURTIME(),
-            note = :note,
-            score = :note,
-            statutTest = 'termine'
+        UPDATE test 
+        SET heureFin = CURTIME(), 
+            statutTest = 'termine',
+            score = :score
         WHERE idTest = :idTest
     ");
     $stmt->execute([
-        'note' => $note,
+        'score' => $score,
         'idTest' => $idTest
     ]);
 
-    // 3. Durée réelle
+    // 3. Calculer la durée
     $stmtTime = $pdo->prepare("SELECT heureDebut, heureFin FROM test WHERE idTest = :idTest");
     $stmtTime->execute(['idTest' => $idTest]);
     $times = $stmtTime->fetch(PDO::FETCH_ASSOC);
@@ -39,7 +46,7 @@ try {
         $debut = strtotime($times['heureDebut']);
         $fin = strtotime($times['heureFin']);
         $dureeSecondes = max(0, $fin - $debut);
-
+        
         $minutes = floor($dureeSecondes / 60);
         $secondes = $dureeSecondes % 60;
         $dureeFormatee = sprintf("%02d:%02d", $minutes, $secondes);
@@ -50,10 +57,11 @@ try {
         "message" => "Test terminé et enregistré avec succès.",
         "duree" => $dureeFormatee,
         "dureeSecondes" => $dureeSecondes,
-        "note" => $note
+        "score" => $score
     ]);
 
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur PDO : " . $e->getMessage()]);
 }
+?>
