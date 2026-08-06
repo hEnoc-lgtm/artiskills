@@ -36,7 +36,7 @@ export default function ConsulterResultats() {
   const resultatsFiltrés = resultats.filter((item) => {
     const matchMetier = filtreMetier === "tous" || item.libelle === filtreMetier;
     const matchDept = filtreDepartement === "tous" || item.nomDepartement === filtreDepartement;
-    const matchStatut = filtreStatut === "tous" || item.statut_test === filtreStatut;
+    const matchStatut = filtreStatut === "tous" || item.statutTest === filtreStatut;
     
     // Filtre période (Exemple pour les 7 derniers jours)
     let matchPeriode = true;
