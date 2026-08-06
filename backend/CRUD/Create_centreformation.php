@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/headers.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/osm.php'; // ← AJOUT : Import des fonctions OSM
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -30,6 +31,13 @@ try {
         exit;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 🌍 GÉOLOCALISATION AUTOMATIQUE VIA OPENSTREETMAP
+    // Si le quartier n'a pas encore de coordonnées, on les récupère via Nominatim
+    // ═══════════════════════════════════════════════════════════════
+    assurerCoordonneesQuartier($pdo, (int)$donnees['id_quartier_centre']);
+    // ═══════════════════════════════════════════════════════════════
+
     $stmt = $pdo->prepare("
         INSERT INTO centre_formation (nomCentre, contactCentre, id_quartier_centre)
         VALUES (:nom, :contact, :idQuartier)
@@ -51,3 +59,4 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur lors de la création : " . $e->getMessage()]);
 }
+?>

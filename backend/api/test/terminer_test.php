@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/osm.php'; // ← NOUVEAU : import des fonctions OSM
 
 $idTest = $_GET['idTest'] ?? null;
 
@@ -11,7 +12,7 @@ if (!$idTest) {
 }
 
 try {
-    // 1. Calculer le score en comptant les bonnes réponses
+    // 1. Calcul du score (sur 10)
     $stmtScore = $pdo->prepare("
         SELECT COUNT(*) as nbCorrectes 
         FROM question_test 
@@ -19,9 +20,9 @@ try {
     ");
     $stmtScore->execute(['idTest' => $idTest]);
     $resultat = $stmtScore->fetch(PDO::FETCH_ASSOC);
-    $score = $resultat['nbCorrectes']; // 1 point par bonne réponse (score sur 10)
+    $score = $resultat['nbCorrectes'];
 
-    // 2. Mettre à jour l'heure de fin, le statut et le score
+    // 2. Mise à jour du test
     $stmt = $pdo->prepare("
         UPDATE test 
         SET heureFin = CURTIME(), 
@@ -34,7 +35,7 @@ try {
         'idTest' => $idTest
     ]);
 
-    // 3. Calculer la durée
+    // 3. Calcul de la durée
     $stmtTime = $pdo->prepare("SELECT heureDebut, heureFin FROM test WHERE idTest = :idTest");
     $stmtTime->execute(['idTest' => $idTest]);
     $times = $stmtTime->fetch(PDO::FETCH_ASSOC);
@@ -46,18 +47,24 @@ try {
         $debut = strtotime($times['heureDebut']);
         $fin = strtotime($times['heureFin']);
         $dureeSecondes = max(0, $fin - $debut);
-        
         $minutes = floor($dureeSecondes / 60);
         $secondes = $dureeSecondes % 60;
         $dureeFormatee = sprintf("%02d:%02d", $minutes, $secondes);
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 📍 AFFECTATION AUTOMATIQUE AU CENTRE LE PLUS PROCHE
+    // ═══════════════════════════════════════════════════════════════
+    $resultatAffectation = affecterAuCentreLePlusProche($pdo, $idTest);
+    // ═══════════════════════════════════════════════════════════════
 
     echo json_encode([
         "success" => true,
         "message" => "Test terminé et enregistré avec succès.",
         "duree" => $dureeFormatee,
         "dureeSecondes" => $dureeSecondes,
-        "score" => $score
+        "score" => $score,
+        "affectation" => $resultatAffectation // ← info sur l'affectation (centre, distance, statut)
     ]);
 
 } catch (PDOException $e) {

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/headers.php';
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/osm.php'; // ← AJOUT : Import des fonctions OSM
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $_SERVER['REQUEST_METHOD'] !== 'PUT') {
     http_response_code(405);
@@ -17,6 +18,15 @@ if (!$idCentre) {
 }
 
 try {
+    // ═══════════════════════════════════════════════════════════════
+    // 🌍 GÉOLOCALISATION AUTOMATIQUE VIA OPENSTREETMAP
+    // Si le nouveau quartier n'a pas encore de coordonnées, on les récupère via Nominatim
+    // ═══════════════════════════════════════════════════════════════
+    if (!empty($donnees['id_quartier_centre'])) {
+        assurerCoordonneesQuartier($pdo, (int)$donnees['id_quartier_centre']);
+    }
+    // ═══════════════════════════════════════════════════════════════
+
     // Mettre à jour les informations réelles
     $stmt = $pdo->prepare("
         UPDATE centre_formation 
@@ -36,3 +46,4 @@ try {
     http_response_code(500);
     echo json_encode(["success" => false, "message" => "Erreur lors de la modification : " . $e->getMessage()]);
 }
+?>

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../config/headers.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/osm.php'; // ← NOUVEAU : import des fonctions OSM
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -8,27 +9,23 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Fonction pour normaliser le nom (tirée de votre script)
 function normaliser(string $texte): string {
     $texte = trim($texte);
     $texte = iconv('UTF-8', 'ASCII//TRANSLIT', $texte);
     return strtoupper($texte);
 }
 
-// Fonction intelligente : Vérifie si le quartier existe, sinon le crée et retourne l'ID
 function getOrCreateQuartier($pdo, $nom_quartier, $id_arrondissement, $latitude, $longitude) {
     $nom_normalise = normaliser($nom_quartier);
 
-    // 1. Vérifier s'il existe déjà
     $stmtCheck = $pdo->prepare("SELECT id_quartier FROM quartier_village WHERE nom_normalise = :nom AND id_arrondissement = :id_arr");
     $stmtCheck->execute(['nom' => $nom_normalise, 'id_arr' => $id_arrondissement]);
     $existant = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
     if ($existant) {
-        return $existant['id_quartier']; // Il existe, on retourne son ID
+        return $existant['id_quartier'];
     }
 
-    // 2. S'il n'existe pas, on l'insère avec les coordonnées OSM
     $stmtInsert = $pdo->prepare("
         INSERT INTO quartier_village (nom_quartier, nom_normalise, id_arrondissement, latitude, longitude)
         VALUES (:nom, :nom_norm, :id_arr, :lat, :lon)
@@ -41,23 +38,20 @@ function getOrCreateQuartier($pdo, $nom_quartier, $id_arrondissement, $latitude,
         'lon' => $longitude
     ]);
 
-    return $pdo->lastInsertId(); // Retourne le nouvel ID créé
+    return $pdo->lastInsertId();
 }
 
-// Récupération des données
 $data = json_decode(file_get_contents("php://input"), true);
 
 $idArtisan = $data['idArtisan'] ?? null;
 $code_corpsmetier = $data['code_corpsmetier'] ?? null;
 $nbrAnExp = $data['nbrAnExp'] ?: null;
 
-// Données Résidence
 $id_arrond_res = $data['id_arrondissement_residence'] ?? null;
 $nom_quartier_res = $data['nom_quartier_residence'] ?? null;
 $lat_res = $data['latitude_residence'] ?: null;
 $lon_res = $data['longitude_residence'] ?: null;
 
-// Données Atelier
 $id_arrond_ate = $data['id_arrondissement_atelier'] ?? null;
 $nom_quartier_ate = $data['nom_quartier_atelier'] ?? null;
 $lat_ate = $data['latitude_atelier'] ?: null;
@@ -69,14 +63,35 @@ if (!$idArtisan || !$code_corpsmetier || !$id_arrond_res || !$nom_quartier_res |
     exit;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 🌍 GÉOLOCALISATION AUTOMATIQUE VIA OPENSTREETMAP
+// Si le frontend n'a pas envoyé les coordonnées, on appelle Nominatim
+// ═══════════════════════════════════════════════════════════════
+if (!$lat_res || !$lon_res) {
+    $adresse_res = getNomCompletQuartier($pdo, $nom_quartier_res, $id_arrond_res);
+    $geo_res = geocoderOSM($adresse_res);
+    if ($geo_res) {
+        $lat_res = $geo_res['lat'];
+        $lon_res = $geo_res['lon'];
+    }
+}
+
+if (!$lat_ate || !$lon_ate) {
+    $adresse_ate = getNomCompletQuartier($pdo, $nom_quartier_ate, $id_arrond_ate);
+    $geo_ate = geocoderOSM($adresse_ate);
+    if ($geo_ate) {
+        $lat_ate = $geo_ate['lat'];
+        $lon_ate = $geo_ate['lon'];
+    }
+}
+// ═══════════════════════════════════════════════════════════════
+
 try {
     $pdo->beginTransaction();
 
-    // Résolution des IDs de quartiers (Check or Create)
     $id_quartier_residence = getOrCreateQuartier($pdo, $nom_quartier_res, $id_arrond_res, $lat_res, $lon_res);
     $id_quartier_atelier = getOrCreateQuartier($pdo, $nom_quartier_ate, $id_arrond_ate, $lat_ate, $lon_ate);
 
-    // Mise à jour de la fiche de l'artisan
     $stmtUpdate = $pdo->prepare("
         UPDATE artisan 
         SET code_corpsmetier = :metier, 
@@ -85,7 +100,6 @@ try {
             id_quartier_atelier = :qa 
         WHERE id_artisan = :id
     ");
-    
     $stmtUpdate->execute([
         'metier' => $code_corpsmetier,
         'exp' => $nbrAnExp,
@@ -94,8 +108,6 @@ try {
         'id' => $idArtisan
     ]);
 
-    // ✅ CORRECTION CRUCIALE : Mettre à jour la table 'test' pour lier le métier au test en cours
-    // Cela permet au fichier chargerQuestions.php de savoir quelles questions charger
     $stmtUpdateTest = $pdo->prepare("
         UPDATE test 
         SET code_corpsmetier = :metier 
