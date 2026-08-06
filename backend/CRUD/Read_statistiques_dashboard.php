@@ -29,7 +29,7 @@ try {
     // 4. Répartition géographique
     $stmt4 = $pdo->query("
         SELECT
-            IFNULL(d.nom_departement, 'Non localisé') AS departement,
+            IFNULL(d.nomDepartement, 'Non localisé') AS departement,
             COUNT(t.idTest) AS total_evaluations,
             SUM(CASE WHEN t.score >= 5 THEN 1 ELSE 0 END) AS total_valides
         FROM test t

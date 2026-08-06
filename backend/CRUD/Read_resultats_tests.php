@@ -19,7 +19,7 @@ try {
             a.prenom,
             a.npi,
             m.libelle as nom_metier,
-            d.nom_departement,
+            d.nomDepartement,
             (SELECT COUNT(*) FROM question_test WHERE idTest = t.idTest AND estVerouillee = 1) as questions_repondues,
             TIMESTAMPDIFF(SECOND, ADDTIME(t.date, t.heureDebut), NOW()) as temps_ecoule_secondes
         FROM test t
