@@ -39,7 +39,7 @@ try {
         LEFT JOIN commune c ON arr.idCommune = c.idCommune
         LEFT JOIN departement d ON c.idDepart = d.idDepart
         WHERE t.date IS NOT NULL AND t.heureDebut IS NOT NULL
-        GROUP BY d.id_departement
+        GROUP BY d.idDepart
         ORDER BY total_evaluations DESC
     ");
     $repartitionGeo = $stmt4->fetchAll(PDO::FETCH_ASSOC);
