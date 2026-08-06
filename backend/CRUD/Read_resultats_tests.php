@@ -14,11 +14,11 @@ try {
             t.idTest,
             t.date,
             t.heureDebut,
-            t.score AS note_test,
+            t.score,
             a.nom,
             a.prenom,
             a.npi,
-            m.libelle as nom_metier,
+            m.libelle,
             d.nomDepartement,
             (SELECT COUNT(*) FROM question_test WHERE idTest = t.idTest AND estVerouillee = 1) as questions_repondues,
             TIMESTAMPDIFF(SECOND, ADDTIME(t.date, t.heureDebut), NOW()) as temps_ecoule_secondes
@@ -27,8 +27,8 @@ try {
         LEFT JOIN corps_metier m ON a.code_corpsmetier = m.code_corpsmetier
         LEFT JOIN quartier_village qv ON a.id_quartier_residence = qv.id_quartier
         LEFT JOIN arrondissement arr ON qv.id_arrondissement = arr.id_arrondissement
-        LEFT JOIN commune c ON arr.id_commune = c.id_commune
-        LEFT JOIN departement d ON c.id_departement = d.id_departement
+        LEFT JOIN commune c ON arr.idCommune = c.idCommune
+        LEFT JOIN departement d ON c.idDepart = d.idDepart
         ORDER BY t.date DESC, t.heureDebut DESC
     "); 
 
@@ -36,18 +36,18 @@ try {
     
     // Détermination dynamique du statut de l'évaluation pour le tableau
     foreach ($resultats as &$r) {
-        $note = $r['note_test'] !== null ? (int)$r['note_test'] : 0;
+        $note = $r['score'] !== null ? (int)$r['score'] : 0;
         $totalRepondu = (int)$r['questions_repondues'];
         $tempsEcoule = $r['temps_ecoule_secondes'] !== null ? (int)$r['temps_ecoule_secondes'] : 0;
 
         if ($r['date'] === null || $r['heureDebut'] === null) {
-            $r['statut_test'] = "Non débuté";
+            $r['statutTest'] = "Non débuté";
         } elseif ($totalRepondu === 10 || $note >= 5) {
-            $r['statut_test'] = "Validé";
+            $r['statutTest'] = "Validé";
         } elseif ($tempsEcoule > 600) {
-            $r['statut_test'] = "Expiré";
+            $r['statutTest'] = "Expiré";
         } else {
-            $r['statut_test'] = "En attente";
+            $r['statutTest'] = "En attente";
         }
     }
 

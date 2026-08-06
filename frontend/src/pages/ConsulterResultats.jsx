@@ -34,8 +34,8 @@ export default function ConsulterResultats() {
 
   // Filtrage combiné des lignes du tableau
   const resultatsFiltrés = resultats.filter((item) => {
-    const matchMetier = filtreMetier === "tous" || item.nom_metier === filtreMetier;
-    const matchDept = filtreDepartement === "tous" || item.nom_departement === filtreDepartement;
+    const matchMetier = filtreMetier === "tous" || item.libelle === filtreMetier;
+    const matchDept = filtreDepartement === "tous" || item.nomDepartement === filtreDepartement;
     const matchStatut = filtreStatut === "tous" || item.statut_test === filtreStatut;
     
     // Filtre période (Exemple pour les 7 derniers jours)
@@ -62,7 +62,7 @@ export default function ConsulterResultats() {
 
         <select value={filtreDepartement} onChange={(e) => setFiltreDepartement(e.target.value)}>
           <option value="tous">Sélectionner un Département</option>
-          {departements.map((d, i) => <option key={i} value={d.nom_departement}>{d.nom_departement}</option>)}
+          {departements.map((d, i) => <option key={i} value={d.nomDepartement}>{d.nomDepartement}</option>)}
         </select>
 
         <select value={filtreStatut} onChange={(e) => setFiltreStatut(e.target.value)}>
@@ -97,12 +97,12 @@ export default function ConsulterResultats() {
               {resultatsFiltrés.map((r) => (
                 <tr key={r.idTest}>
                   <td><strong>{r.nom} {r.prenom.charAt(0)}.</strong></td>
-                  <td>{r.nom_metier || "Non renseigné"}</td>
-                  <td>{r.nom_departement || "Inconnu"}</td>
-                  <td className="note-cell-style">{r.note_test !== null ? `${r.note_test}/10` : "—"}</td>
+                  <td>{r.libelle || "Non renseigné"}</td>
+                  <td>{r.nomDepartement || "Inconnu"}</td>
+                  <td className="note-cell-style">{r.score !== null ? `${r.score}/10` : "—"}</td>
                   <td>
-                    <span className={`status-badge-pill ${r.statut_test.toLowerCase().replace(/\s/g, '_')}`}>
-                      {r.statut_test}
+                    <span className={`status-badge-pill ${r.statutTest.toLowerCase().replace(/\s/g, '_')}`}>
+                      {r.statutTest}
                     </span>
                   </td>
                 </tr>
