@@ -36,8 +36,8 @@ try {
         JOIN artisan a ON t.id_artisan = a.id_artisan
         LEFT JOIN quartier_village qv ON a.id_quartier_residence = qv.id_quartier
         LEFT JOIN arrondissement arr ON qv.id_arrondissement = arr.id_arrondissement
-        LEFT JOIN commune c ON arr.id_commune = c.id_commune
-        LEFT JOIN departement d ON c.id_departement = d.id_departement
+        LEFT JOIN commune c ON arr.idCommune = c.idCommune
+        LEFT JOIN departement d ON c.idDepart = d.idDepart
         WHERE t.date IS NOT NULL AND t.heureDebut IS NOT NULL
         GROUP BY d.id_departement
         ORDER BY total_evaluations DESC
