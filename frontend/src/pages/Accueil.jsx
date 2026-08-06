@@ -66,7 +66,14 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
               Inscrivez-vous à un test
             </button>
             
-            <button className="btn btn-secondary">En savoir plus</button>
+            <a
+              href="https://anps.social.gouv.bj/arch-volet/formation-des-artisans"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary"
+            >
+              En savoir plus
+            </a>
           </div>
 
           <div className="social-proof">
@@ -79,6 +86,7 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
       {/* FOOTER */}
       <footer className="site-footer">
         <div className="benin-flag-ribbon" />
+
         <div className="footer-content">
           <div className="footer-grid">
             <div className="footer-column">
@@ -112,36 +120,43 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
               <ul>
                 <li><a href="#rapports">Rapports</a></li>
                 <li><a href="#documents">Documents</a></li>
-                <li className="links-title">LIENS UTILES</li>
+              </ul>
+              <h3 className="sub-header">LIENS UTILES</h3>
+              <ul>
                 <li><a href="#ministere">Ministère des Affaires Sociales et de la Microfinance</a></li>
                 <li><a href="#sante">Ministère de la Santé</a></li>
+                <li><a href="#fnm">Fonds National de la Microfinance</a></li>
+                <li><a href="#cma">Chambre des Métiers de l'artisanat</a></li>
               </ul>
             </div>
             <div className="footer-column contact-col">
               <h3>NOUS CONTACTER</h3>
-              <ul className="contact-list">
-                <li><strong>Téléphone:</strong><br/>+229 20 21 34 14</li>
-                <li><strong>E-mail:</strong><br/>masm.anps@gouv.bj</li>
-                <li><strong>Adresse:</strong><br/>Immeuble HOUNDEKON,<br/>Quartier Sainte Rita</li>
-                <li className="geoloc"><a href="#geoloc">Géolocaliser l'ANPS →</a></li>
-              </ul>
+              <div className="contact-info">
+                <p><strong>Téléphone:</strong><br/>+229 20 21 34 14</p>
+                <p><strong>E-mail:</strong><br/>masm.anps@gouv.bj</p>
+                <p><strong>Adresse:</strong><br/>Immeuble HOUNDEKON,<br/>Quartier Sainte Rita</p>
+                <a href="#geoloc" className="geoloc-link">Géolocaliser l'ANPS →</a>
+              </div>
             </div>
           </div>
         </div>
+        
         <div className="footer-bottom-bar">
           <div className="footer-bottom-inner">
             <div className="social-icons" aria-hidden>
               <span className="social-icon" title="Facebook">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 12.07C22 6.48 17.52 2 11.93 2S2 6.48 2 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H8.07v-2.9h2.37V9.41c0-2.34 1.4-3.63 3.55-3.63 1.03 0 2.11.18 2.11.18v2.32h-1.19c-1.17 0-1.53.73-1.53 1.48v1.78h2.6l-.42 2.9h-2.18V22c4.78-.8 8.44-4.94 8.44-9.93z" fill="currentColor"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 12.07C22 6.48 17.52 2 11.93 2S2 6.48 2 12.07c0 4.99 3.66 9.13 8.44 9.93v-7.03H8.07v-2.9h2.37V9.41c0-2.34 1.4-3.63 3.55-3.63 1.03 0 2.11.18 2.11.18v2.32h-1.19c-1.17 0-1.53.73-1.53 1.48v1.78h2.6l-.42 2.9h-2.18V22c4.78-.8 8.44-4.94 8.44-9.93z" fill="currentColor"/></svg>
               </span>
               <span className="social-icon" title="YouTube">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23.5 6.2s-.23-1.63-.94-2.35C21.29 3 18.96 3 18.96 3h-13.9s-2.33 0-3.6.85C.73 4.57.5 6.2.5 6.2S.27 8 .27 9.77v2.46c0 1.77.23 3.57.23 3.57s.23 1.63.94 2.35c.92.95 2.02.92 2.52 1.02 1.82.28 7.74.28 7.74.28s2.33 0 3.6-.85c.71-.48.94-2.35.94-2.35s.23-1.8.23-3.57V9.77c0-1.77-.23-3.57-.23-3.57zM9.75 15.02V8.98l6.02 3.02-6.02 3.02z" fill="currentColor"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M23.5 6.2s-.23-1.63-.94-2.35C21.29 3 18.96 3 18.96 3h-13.9s-2.33 0-3.6.85C.73 4.57.5 6.2.5 6.2S.27 8 .27 9.77v2.46c0 1.77.23 3.57.23 3.57s.23 1.63.94 2.35c.92.95 2.02.92 2.52 1.02 1.82.28 7.74.28 7.74.28s2.33 0 3.6-.85c.71-.48.94-2.35.94-2.35s.23-1.8.23-3.57V9.77c0-1.77-.23-3.57-.23-3.57zM9.75 15.02V8.98l6.02 3.02-6.02 3.02z" fill="currentColor"/></svg>
               </span>
               <span className="social-icon" title="Flickr">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="12" r="3" fill="currentColor"/><circle cx="17" cy="12" r="3" fill="currentColor"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="12" r="3" fill="currentColor"/><circle cx="17" cy="12" r="3" fill="currentColor"/></svg>
               </span>
             </div>
-            <div className="copy-line">© {new Date().getFullYear()} ANPS | Mentions Légales &nbsp;&nbsp; Administration</div>
+            <div className="copy-line">
+              © {new Date().getFullYear()} ANPS | Mentions Légales &nbsp;&nbsp; Administration
+            </div>
           </div>
         </div>
       </footer>
@@ -149,6 +164,8 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
       <style>{`
         html, body, #root { height: 100%; margin: 0; padding: 0; }
         .page-container { font-family: 'Montserrat', sans-serif; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Hero Styles */
         .hero-section { position: relative; padding: 120px 5%; min-height: 500px; display: flex; align-items: center; overflow: hidden; flex: 1 0 auto; }
         .hero-carousel { position: absolute; inset: 0; z-index: 0; }
         .carousel-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.8s ease-in-out; pointer-events: none; will-change: opacity; }
@@ -165,17 +182,126 @@ export default function Accueil({ onNavigateToAdmin, onNavigateToRegister }) {
         .btn-primary:hover { background: #1e293b; transform: translateY(-1px); }
         .btn-secondary { background: #ffffff; color: #334155; border: 1px solid #cbd5e1 !important; }
         .btn-secondary:hover { background: #f1f5f9; border-color: #94a3b8 !important; }
+        .btn-secondary { text-decoration: none; }
         .social-proof { display: flex; align-items: center; gap: 10px; }
         .star-icon { color: #eab308; font-size: 1.1rem; letter-spacing: 2px; }
         .social-proof p { margin: 0; font-size: 0.95rem; color: #64748b; }
-        .site-footer { background: #091322; color: #f1f5f9; margin-top: 80px; width: 100%; margin-left: 0; margin-right: 0; flex-shrink: 0; }
-        .benin-flag-ribbon { height: 5px; width: 100%; background: linear-gradient(to right, #008751 33.33%, #ffeb3b 66.66%, #e81123 100%); }
         .hero-login-btn { position: absolute; top: 12px; right: 5%; z-index: 1200; padding: 10px 18px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; background: rgba(255,255,255,0.95); color: #0f172a; border: 2px solid rgba(15,23,42,0.95); font-family: 'Montserrat', sans-serif; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 12px rgba(15,23,42,0.12); transition: transform 0.18s ease, background 0.15s ease, color 0.15s ease; cursor: pointer; }
         .hero-login-btn:hover { transform: translateY(-3px); background: #0f172a; color: #ffffff; border-color: #0f172a; }
+        
+        /* Footer Styles */
+        .site-footer { background: #050b14; color: #f1f5f9; margin-top: 80px; width: 100%; flex-shrink: 0; position: relative; }
+        .benin-flag-ribbon { height: 6px; width: 100%; background: linear-gradient(to right, #008751 33.33%, #ffeb3b 66.66%, #e81123 100%); }
+
+        .footer-content {
+          padding: 20px 5% 60px;
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        .footer-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 40px 30px;
+        }
+        .footer-column h3 {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #ffffff;
+          margin: 0 0 20px 0;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+        .footer-column .sub-header {
+          margin-top: 30px;
+        }
+        .footer-column ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .footer-column a {
+          color: #94a3b8;
+          text-decoration: none;
+          font-size: 0.9rem;
+          transition: color 0.2s ease;
+          line-height: 1.4;
+        }
+        .footer-column a:hover {
+          color: #ffffff;
+        }
+        
+        .contact-info p {
+          color: #94a3b8;
+          font-size: 0.9rem;
+          line-height: 1.5;
+          margin: 0 0 15px 0;
+        }
+        .contact-info strong {
+          color: #ffffff;
+          display: block;
+          margin-bottom: 4px;
+          font-weight: 600;
+        }
+        .geoloc-link {
+          color: #ffffff !important;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          margin-top: 10px;
+        }
+
+        .footer-bottom-bar {
+          border-top: 1px solid #1e293b;
+          padding: 30px 5%;
+          display: flex;
+          justify-content: center;
+          background: #050b14;
+        }
+        .footer-bottom-inner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+          width: 100%;
+          max-width: 1400px;
+        }
+        .social-icons {
+          display: flex;
+          gap: 20px;
+        }
+        .social-icon {
+          color: #ffffff;
+          cursor: pointer;
+          transition: transform 0.2s, color 0.2s;
+          display: flex;
+          align-items: center;
+        }
+        .social-icon:hover {
+          transform: scale(1.1);
+          color: #cbd5e1;
+        }
+        .copy-line {
+          color: #94a3b8;
+          font-size: 0.85rem;
+          text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) { 
+          .footer-grid { grid-template-columns: repeat(3, 1fr); } 
+        }
         @media (max-width: 768px) { 
           .hero-inner-content h1 { font-size: 2rem; } 
           .hero-overlay { background: rgba(255, 255, 255, 0.92); } 
           .hero-login-btn { right: 4%; top: 10px; padding: 8px 12px; font-size: 0.85rem; } 
+          .footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+          .footer-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>

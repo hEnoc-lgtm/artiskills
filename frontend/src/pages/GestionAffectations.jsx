@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 
 export default function GestionAffectations() {
   const [affectations, setAffectations] = useState([]);
+  const [departements, setDepartements] = useState([]); // ← maintenant chargé depuis la BDD
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState(null);
   const [recherche, setRecherche] = useState("");
@@ -9,6 +10,7 @@ export default function GestionAffectations() {
   const [filtreDepartement, setFiltreDepartement] = useState("tous");
 
   useEffect(() => {
+    // 1. Charger les affectations
     fetch("http://localhost/Code/backend/CRUD/Read_affectation.php")
       .then((res) => res.json())
       .then((data) => {
@@ -20,10 +22,17 @@ export default function GestionAffectations() {
         setErreur("Impossible de contacter le serveur.");
         setChargement(false);
       });
+
+    // 2. Charger TOUS les départements pour la liste déroulante
+    fetch("http://localhost/Code/backend/CRUD/Read_departement.php")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setDepartements(data.data);
+      })
+      .catch((err) => console.error("Erreur chargement départements :", err));
   }, []);
 
-  const departements = [...new Set(affectations.map((a) => a.nomDepartement).filter(Boolean))];
-
+  // Filtrage combiné
   const dataFiltree = affectations.filter((a) => {
     const txt = recherche.trim().toLowerCase();
     const matchRecherche =
@@ -58,13 +67,15 @@ export default function GestionAffectations() {
       <div className="affect-filters">
         <input
           type="text"
-          placeholder="🔍 Rechercher un dossier par NPI, nom ou centre..."
+          placeholder="🔍 Rechercher par NPI, nom ou centre..."
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
         />
         <select value={filtreDepartement} onChange={(e) => setFiltreDepartement(e.target.value)}>
           <option value="tous">Tous les départements</option>
-          {departements.map((d) => <option key={d} value={d}>{d}</option>)}
+          {departements.map((d) => (
+            <option key={d.idDepart} value={d.nomDepartement}>{d.nomDepartement}</option>
+          ))}
         </select>
         <select value={filtreStatut} onChange={(e) => setFiltreStatut(e.target.value)}>
           <option value="tous">Tous les statuts</option>

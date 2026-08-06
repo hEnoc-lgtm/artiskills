@@ -3,6 +3,26 @@
 // ArtiSkills — OpenStreetMap (Nominatim) + calcul géographique
 // Emplacement : backend/config/osm.php
 // ============================================================
+// ============================================================
+// Construit l'adresse complète d'un quartier (pour Nominatim)
+// ============================================================
+
+function getNomCompletQuartier($pdo, $nom_quartier, $id_arrondissement) {
+    $stmt = $pdo->prepare("
+        SELECT com.nomCommune, d.nomDepartement
+        FROM arrondissement arr
+        JOIN commune com ON arr.idCommune = com.idCommune
+        JOIN departement d ON com.idDepart = d.idDepart
+        WHERE arr.id_arrondissement = ?
+    ");
+    $stmt->execute([$id_arrondissement]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$row) {
+        return $nom_quartier . ', Bénin';
+    }
+    return $nom_quartier . ', ' . $row['nomCommune'] . ', ' . $row['nomDepartement'] . ', Bénin';
+}
 
 // 1. Géocodage d'une adresse via Nominatim (aucune clé API)
 function geocoderOSM($adresse) {
